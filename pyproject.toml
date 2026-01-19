@@ -1,0 +1,12 @@
+[project]
+name = "cc-news-analyzer"
+version = "0.1.0"
+description = "Economic stability monitoring agent"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "claude-agent-sdk>=0.1.20",
+    "python-dotenv>=1.2.1",
+    "python-telegram-bot>=21.0",
+    "modal>=0.67.0",
+]
