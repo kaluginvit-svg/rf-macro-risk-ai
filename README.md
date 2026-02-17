@@ -1,12 +1,12 @@
-# 💰 Money Alert AI
+# 📈 RF Macro Outlook AI
 
-AI-агент для мониторинга финансовой стабильности и оценки рисков заморозки вкладов в России.
+AI-агент для **макро-оценки экономики РФ**: негативные/позитивные тенденции и риск кризисного сценария на горизонте **6 месяцев**.
 
 Ведёт Telegram-канал [@money_alert_ai](https://t.me/money_alert_ai)
 
 ## 🎯 Что делает
 
-Анализирует новостной фон по 46 критериям риска и выдаёт оценку:
+Анализирует новостной фон по набору критериев риска и выдаёт оценку риска кризисного сценария (6м):
 
 - 🟢 **НИЗКИЙ** (0-9 очков) — ситуация стабильная
 - 🟡 **СРЕДНИЙ** (10-19 очков) — повышенное внимание
@@ -14,12 +14,12 @@ AI-агент для мониторинга финансовой стабиль�
 
 ## 🏗️ Архитектура
 
-**React-агент** на базе Claude Sonnet 4.5:
+**Один агент** (LangChain) с инструментами WebSearch/WebFetch:
 
 - Получает все критерии в системном промпте
-- Сам планирует порядок проверки (начинает с критичных — вес 20)
-- Использует WebSearch для поиска актуальных новостей
-- Группирует похожие критерии для эффективности
+- Сам планирует порядок проверки
+- Делает WebSearch по группам критериев
+- Выдаёт компактный JSON → форматируется в Telegram-отчёт
 
 ## 🚀 Быстрый старт
 
@@ -27,7 +27,7 @@ AI-агент для мониторинга финансовой стабиль�
 
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) — быстрый менеджер пакетов
-- API ключ Anthropic
+- `TAVILY_API_KEY` (поиск) и ключ LLM-провайдера (OpenAI или GigaChat)
 
 ### Установка
 
@@ -49,7 +49,10 @@ uv sync
 
 | Переменная | Обязательно | Описание |
 |------------|-------------|----------|
-| `ANTHROPIC_API_KEY` | ✅ | API ключ от [Anthropic Console](https://console.anthropic.com/) |
+| `TAVILY_API_KEY` | ✅ | API ключ Tavily для поиска |
+| `MODEL_PROVIDER` | ✅ | `openai` или `gigachat` |
+| `OPENAI_API_KEY` | при `MODEL_PROVIDER=openai` | API ключ OpenAI |
+| `GIGACHAT_USER`/`GIGACHAT_PASSWORD` | при `MODEL_PROVIDER=gigachat` | доступ к GigaChat |
 | `CRITERIA_FILE` | ❌ | Путь к файлу критериев (по умолчанию `criteria.json`) |
 | `TELEGRAM_BOT_TOKEN` | ❌ | Токен бота для отправки отчётов в Telegram |
 | `TELEGRAM_CHANNEL_ID` | ❌ | ID чата/канала для публикации |
@@ -59,13 +62,19 @@ uv sync
 CRITERIA_FILE=criteria_small.json
 ```
 
+Также в репозитории сохранён старый профиль «риск заморозки вкладов»:
+
+```bash
+CRITERIA_FILE=criteria_deposit_freeze.json
+```
+
 ### Локальный запуск
 
 ```bash
-uv run python src/money_alert_bot.py
+uv run python src/lc_money_alert_bot.py
 ```
 
-⚠️ **Внимание:** Запуск занимает несколько минут и стоит денег (API вызовы Claude).
+⚠️ **Внимание:** Запуск занимает несколько минут и стоит денег (API вызовы LLM + поиск).
 
 ### ☁️ Деплой на Modal.com (по расписанию)
 
@@ -74,8 +83,11 @@ uv run python src/money_alert_bot.py
 **1. Создать секреты в Modal:**
 
 ```bash
-# Anthropic API ключ
-modal secret create anthropic-secret ANTHROPIC_API_KEY=sk-ant-...
+# Tavily API ключ
+modal secret create tavily TAVILY_API_KEY=tvly-...
+
+# OpenAI (если используете openai)
+modal secret create openai OPENAI_API_KEY=sk-...
 
 # Telegram секреты
 modal secret create telegram \
@@ -122,24 +134,29 @@ modal app logs money-alert-bot
 ## 📁 Структура проекта
 
 ```
-├── money_alert_bot.py    # Основной агент
-├── criteria.json         # 46 критериев риска с весами
-├── criteria_small.json   # Сокращённый набор для тестов
+├── criteria.json                     # Макро-критерии РФ (по умолчанию)
+├── criteria_small.json               # Сокращённый макро-набор для тестов
+├── criteria_deposit_freeze.json      # Старый профиль: риск заморозки вкладов (архив)
+├── criteria_deposit_freeze_small.json# Сокращённый депозитный набор
 ├── src/
-│   ├── analyzer.py       # Многоагентная система (альтернатива)
-│   ├── criteria_loader.py
-│   ├── report.py
-│   └── telegram_bot.py   # Telegram интеграция
+│   ├── lc_money_alert_bot.py   # Основной агент (LangChain)
+│   ├── bot_common.py           # Общие утилиты (Telegram, критерии, отчёт, промпт)
+│   └── modal_app.py            # Запуск по расписанию на Modal
 └── AGENTS.md             # Подробная документация
 ```
 
 ## 🔧 Зависимости
 
 ```
-claude-agent-sdk>=0.1.20
 python-dotenv>=1.2.1
 python-telegram-bot>=21.0
 modal>=0.67.0
+langchain>=1.2.10
+langchain-gigachat-lc1>=0.4.0b4
+langchain-openai>=0.3.0
+langgraph>=1.0.8
+httpx>=0.27.0
+langchain-tavily>=0.2.17
 ```
 
 ## 📜 Лицензия

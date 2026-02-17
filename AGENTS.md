@@ -1,47 +1,20 @@
-# Агенты мониторинга финансовых рисков
+# Агенты мониторинга макро-рисков РФ
 
 ## Обзор
 
-Проект содержит два подхода к анализу критериев риска заморозки вкладов в России.
 
----
 
-## 1. Многоагентная система (`main.py` + `src/analyzer.py`)
-
-**Архитектура:** Оркестратор + субагенты
-
-- **Этап 1:** Параллельный запуск субагентов на Sonnet для каждого критерия (до 3 одновременно)
-- **Этап 2:** Верификация срабатываний на Opus (только если что-то сработало)
-
-**Плюсы:**
-- Детальный анализ каждого критерия
-- Двухуровневая проверка снижает false positives
-
-**Минусы:**
-- Дорого (много вызовов API)
-- Долго (46 критериев × отдельный агент)
-
-**Запуск:**
-```bash
-uv run python main.py
-```
-
----
-
-## 2. Простой React агент (`money_alert_bot.py`)
+## 1. LangChain агент (`src/lc_money_alert_bot.py`)
 
 **Архитектура:** Один агент с инструментами
 
-- Один агент на **Claude Sonnet 4.5** (`claude-sonnet-4-20250514`)
+- Один агент (LangChain) с инструментами WebSearch/WebFetch
 - Получает **все критерии сразу** в системном промпте
-- **Сам планирует** порядок проверки (начинает с критичных — вес 20)
-- Использует **WebSearch** для поиска новостей
-- До **50 шагов** (`max_turns=50`)
+- **Сам планирует** порядок проверки
+- Использует **WebSearch** для поиска новостей (Tavily)
 - Может **группировать** похожие критерии
 
 **Учёт расходов:**
-- Считает input/output токены
-- Рассчитывает стоимость по ценам Sonnet ($3/1M input, $15/1M output)
 - Выводит итоговую сумму в USD
 
 **Формат вывода:**
@@ -63,7 +36,7 @@ uv run python main.py
 
 **Запуск:**
 ```bash
-uv run python money_alert_bot.py
+uv run python src/lc_money_alert_bot.py
 ```
 
 ⚠️ **Внимание:** Запуск занимает несколько минут и стоит денег (API вызовы).
@@ -74,26 +47,33 @@ uv run python money_alert_bot.py
 
 **Файл:** `src/modal_app.py`
 
-Бот запускается автоматически **каждый день в 9:00 по Москве** (6:00 UTC).
+Бот запускается автоматически **каждые 3 дня в 9:00 по Москве** (6:00 UTC).
 
 ### Настройка секретов
 
 Перед деплоем создайте секреты в [Modal Dashboard](https://modal.com/secrets) или через CLI:
 
 ```bash
-# Anthropic API ключ
-modal secret create anthropic-secret ANTHROPIC_API_KEY=sk-ant-...
+# Tavily API ключ
+modal secret create tavily TAVILY_API_KEY=tvly-...
+
+# OpenAI (если используете openai)
+modal secret create openai OPENAI_API_KEY=sk-...
 
 # Telegram секреты
 modal secret create telegram \
   TELEGRAM_BOT_TOKEN=123456789:ABC... \
-  TELEGRAM_CHANNEL_ID=123456789
+  TELEGRAM_CHANNEL_ID=-100123456789 \
+  TELEGRAM_ADMIN_CHAT_ID=-100123456789
 ```
 
 | Секрет | Переменные | Обязательно | Описание |
 |--------|------------|-------------|----------|
-| `anthropic-secret` | `ANTHROPIC_API_KEY` | ✅ | API ключ Anthropic |
-| `telegram` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID` | ✅ | Токен бота и ID чата/канала |
+| `tavily` | `TAVILY_API_KEY` | ✅ | API ключ Tavily |
+| `openai` | `OPENAI_API_KEY` | ⚪ | API ключ OpenAI (если используете OpenAI) |
+| `telegram` | `TELEGRAM_BOT_TOKEN` | ✅ | Токен Telegram бота |
+| `telegram` | `TELEGRAM_CHANNEL_ID` | ✅ | ID канала для публикации отчётов |
+| `telegram` | `TELEGRAM_ADMIN_CHAT_ID` | ⚪ | ID чата для уведомлений админу (опционально) |
 
 ### Деплой
 
@@ -102,7 +82,7 @@ modal secret create telegram \
 modal deploy src/modal_app.py
 ```
 
-После деплоя бот будет автоматически запускаться каждый день в 9:00 MSK.
+После деплоя бот будет автоматически запускаться каждые 3 дня в 9:00 MSK.
 
 ### Тестовый запуск
 
@@ -123,14 +103,18 @@ modal app logs money-alert-bot
 ### Особенности
 
 - **Таймаут:** 30 минут (агент может работать долго)
-- **Расписание:** Cron `0 6 * * *` (9:00 MSK = 6:00 UTC)
-- **Результат:** Отправляется в Telegram
+- **Расписание:** Cron `0 6 */3 * *` (каждые 3 дня, 9:00 MSK = 6:00 UTC)
+- **Результат:** Отправляется в Telegram канал
+- **Уведомления:** Админу отправляется сообщение о публикации с краткой статистикой
 
 ---
 
-## Критерии риска
+## Критерии
 
-Критерии загружаются из `criteria.json`. Всего 46 критериев с весами от 3 до 20.
+Критерии загружаются из `criteria.json` (по умолчанию) или из файла, заданного в `CRITERIA_FILE`.
+
+- `criteria.json`: макро-критерии (негатив/позитив тенденции + риск кризисного сценария на 6 месяцев)
+- `criteria_deposit_freeze.json`: старый профиль «риск заморозки вкладов» (оставлен для совместимости/архива)
 
 **Пороги риска:**
 - 🟢 **НИЗКИЙ** (green): 0-9 очков — ситуация стабильная
@@ -142,15 +126,23 @@ modal app logs money-alert-bot
 ## Зависимости
 
 ```
-claude-agent-sdk>=0.1.20
 python-dotenv>=1.2.1
 python-telegram-bot>=21.0
 modal>=0.67.0
+langchain>=1.2.10
+langchain-gigachat-lc1>=0.4.0b4
+langchain-openai>=0.3.0
+langgraph>=1.0.8
+httpx>=0.27.0
+langchain-tavily>=0.2.17
 ```
 
 ### Переменные окружения
 
 Для локального запуска — в файле `.env`:
-- `ANTHROPIC_API_KEY` — ключ Anthropic API
+- `TAVILY_API_KEY` — ключ Tavily для поиска
+- `MODEL_PROVIDER` — `openai` или `gigachat`
+- `OPENAI_API_KEY` — ключ OpenAI (если `MODEL_PROVIDER=openai`)
 - `TELEGRAM_BOT_TOKEN` — токен Telegram бота
-- `TELEGRAM_CHANNEL_ID` — ID чата для отправки отчётов
+- `TELEGRAM_CHANNEL_ID` — ID канала для публикации отчётов
+- `TELEGRAM_ADMIN_CHAT_ID` — ID чата для уведомлений админу (опционально)
