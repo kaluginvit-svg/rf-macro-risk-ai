@@ -6,7 +6,8 @@ Modal приложение для запуска бота мониторинга
   modal run src/modal_app.py      # Ручной тестовый запуск
 
 Секреты Modal:
-  - openai: OPENAI_API_KEY
+  - openai: OPENAI_API_KEY (если MODEL_PROVIDER=openai)
+  - google: GOOGLE_API_KEY (если MODEL_PROVIDER=gemini)
   - tavily: TAVILY_API_KEY
   - telegram: TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID, TELEGRAM_ADMIN_CHAT_ID
 """
@@ -28,6 +29,7 @@ image = (
         "python-telegram-bot>=21.0",
         "langchain>=1.2.10",
         "langchain-openai>=0.3.0",
+        "langchain-google-genai>=2.1.0",
         "langgraph>=1.0.8",
         "httpx>=0.27.0",
         "langchain-tavily>=0.2.17",
@@ -50,7 +52,8 @@ image = (
 @app.function(
     image=image,
     secrets=[
-        modal.Secret.from_name("openai"),  # OPENAI_API_KEY
+        modal.Secret.from_name("openai"),  # OPENAI_API_KEY (если provider=openai)
+        # modal.Secret.from_name("google"),  # GOOGLE_API_KEY (раскомментировать при MODEL_PROVIDER=gemini)
         modal.Secret.from_name("tavily"),  # TAVILY_API_KEY
         modal.Secret.from_name("telegram"),  # TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID
     ],

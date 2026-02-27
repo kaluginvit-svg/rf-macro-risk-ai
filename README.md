@@ -50,7 +50,10 @@ uv sync
 | Переменная | Обязательно | Описание |
 |------------|-------------|----------|
 | `TAVILY_API_KEY` | ✅ | API ключ Tavily для поиска |
-| `OPENAI_API_KEY` | ✅ | API ключ OpenAI |
+| `MODEL_PROVIDER` | ✅ | `openai`, `gemini` или `gigachat` |
+| `OPENAI_API_KEY` | при `MODEL_PROVIDER=openai` | API ключ OpenAI |
+| `GOOGLE_API_KEY` | при `MODEL_PROVIDER=gemini` | API ключ Google Gemini |
+| `GIGACHAT_USER`/`GIGACHAT_PASSWORD` | при `MODEL_PROVIDER=gigachat` | доступ к GigaChat |
 | `CRITERIA_FILE` | ❌ | Путь к файлу критериев (по умолчанию `criteria.json`) |
 | `TELEGRAM_BOT_TOKEN` | ❌ | Токен бота для отправки отчётов в Telegram |
 | `TELEGRAM_CHANNEL_ID` | ❌ | ID чата/канала для публикации |
@@ -69,7 +72,9 @@ CRITERIA_FILE=criteria_deposit_freeze.json
 ### Локальный запуск
 
 ```bash
-uv run python src/lc_money_alert_bot.py
+uv run python src/lc_money_alert_bot.py                    # OpenAI (по умолчанию)
+uv run python src/lc_money_alert_bot.py --provider gemini  # Gemini
+uv run python src/lc_money_alert_bot.py --provider gigachat # GigaChat
 ```
 
 ⚠️ **Внимание:** Запуск занимает несколько минут и стоит денег (API вызовы LLM + поиск).
@@ -86,6 +91,9 @@ modal secret create tavily TAVILY_API_KEY=tvly-...
 
 # OpenAI
 modal secret create openai OPENAI_API_KEY=sk-...
+
+# Google Gemini (если используете gemini)
+modal secret create google GOOGLE_API_KEY=AIza...
 
 # Telegram секреты
 modal secret create telegram \
@@ -151,6 +159,7 @@ python-telegram-bot>=21.0
 modal>=0.67.0
 langchain>=1.2.10
 langchain-openai>=0.3.0
+langchain-google-genai>=2.1.0
 langgraph>=1.0.8
 httpx>=0.27.0
 langchain-tavily>=0.2.17
