@@ -6,7 +6,7 @@ Modal приложение для запуска бота мониторинга
   modal run src/modal_app.py      # Ручной тестовый запуск
 
 Секреты Modal:
-  - openai: OPENAI_API_KEY (если MODEL_PROVIDER=openai)
+  - openai: OPENAI_API_KEY
   - tavily: TAVILY_API_KEY
   - telegram: TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID, TELEGRAM_ADMIN_CHAT_ID
 """
@@ -27,7 +27,6 @@ image = (
         "python-dotenv>=1.2.1",
         "python-telegram-bot>=21.0",
         "langchain>=1.2.10",
-        "langchain-gigachat-lc1>=0.4.0b4",
         "langchain-openai>=0.3.0",
         "langgraph>=1.0.8",
         "httpx>=0.27.0",
@@ -51,7 +50,7 @@ image = (
 @app.function(
     image=image,
     secrets=[
-        modal.Secret.from_name("openai"),  # OPENAI_API_KEY (если provider=openai)
+        modal.Secret.from_name("openai"),  # OPENAI_API_KEY
         modal.Secret.from_name("tavily"),  # TAVILY_API_KEY
         modal.Secret.from_name("telegram"),  # TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID
     ],
@@ -86,11 +85,9 @@ async def run_periodic_check():
     
     # Уведомление о старте
     await notify_admin("🚀 Начата генерация отчёта...")
-    
-    provider = os.getenv("MODEL_PROVIDER", "openai")
 
     with Logger() as logger:
-        result = await run_agent(criteria_file, logger, provider=provider)
+        result = await run_agent(criteria_file, logger)
         report = format_telegram_report(result, result["stats"])
         
         if result and result.get("result"):
@@ -107,13 +104,7 @@ async def run_periodic_check():
             if score > 0:
                 # Ненулевой риск — отправляем админу для ручной проверки
                 print(f"⚠️ Обнаружен риск (очки: {score}) — отправка админу")
-                admin_msg = (
-                    f"Риск: {risk_emoji} {risk_label}, очки: {score}\n"
-                    f"Время: {stats['time_seconds']:.0f}с, поисков: {stats['tool_calls']}\n"
-                    f"Стоимость: ${stats['cost_usd']:.4f}\n\n"
-                    f"--- ОТЧЁТ ---\n{report}"
-                )
-                await notify_admin(admin_msg, parse_mode="HTML")
+                await notify_admin(report, parse_mode="HTML")
             else:
                 # Нулевой риск — публикуем в канал
                 print("📤 Нулевой риск — публикация в канал")

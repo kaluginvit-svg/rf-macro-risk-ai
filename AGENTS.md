@@ -130,7 +130,6 @@ python-dotenv>=1.2.1
 python-telegram-bot>=21.0
 modal>=0.67.0
 langchain>=1.2.10
-langchain-gigachat-lc1>=0.4.0b4
 langchain-openai>=0.3.0
 langgraph>=1.0.8
 httpx>=0.27.0
@@ -141,8 +140,7 @@ langchain-tavily>=0.2.17
 
 Для локального запуска — в файле `.env`:
 - `TAVILY_API_KEY` — ключ Tavily для поиска
-- `MODEL_PROVIDER` — `openai` или `gigachat`
-- `OPENAI_API_KEY` — ключ OpenAI (если `MODEL_PROVIDER=openai`)
+- `OPENAI_API_KEY` — ключ OpenAI
 - `TELEGRAM_BOT_TOKEN` — токен Telegram бота
 - `TELEGRAM_CHANNEL_ID` — ID канала для публикации отчётов
 - `TELEGRAM_ADMIN_CHAT_ID` — ID чата для уведомлений админу (опционально)

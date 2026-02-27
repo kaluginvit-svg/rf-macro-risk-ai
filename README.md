@@ -27,7 +27,7 @@ AI-агент для **макро-оценки экономики РФ**: нег
 
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) — быстрый менеджер пакетов
-- `TAVILY_API_KEY` (поиск) и ключ LLM-провайдера (OpenAI или GigaChat)
+- `TAVILY_API_KEY` (поиск) и `OPENAI_API_KEY`
 
 ### Установка
 
@@ -50,9 +50,7 @@ uv sync
 | Переменная | Обязательно | Описание |
 |------------|-------------|----------|
 | `TAVILY_API_KEY` | ✅ | API ключ Tavily для поиска |
-| `MODEL_PROVIDER` | ✅ | `openai` или `gigachat` |
-| `OPENAI_API_KEY` | при `MODEL_PROVIDER=openai` | API ключ OpenAI |
-| `GIGACHAT_USER`/`GIGACHAT_PASSWORD` | при `MODEL_PROVIDER=gigachat` | доступ к GigaChat |
+| `OPENAI_API_KEY` | ✅ | API ключ OpenAI |
 | `CRITERIA_FILE` | ❌ | Путь к файлу критериев (по умолчанию `criteria.json`) |
 | `TELEGRAM_BOT_TOKEN` | ❌ | Токен бота для отправки отчётов в Telegram |
 | `TELEGRAM_CHANNEL_ID` | ❌ | ID чата/канала для публикации |
@@ -86,7 +84,7 @@ uv run python src/lc_money_alert_bot.py
 # Tavily API ключ
 modal secret create tavily TAVILY_API_KEY=tvly-...
 
-# OpenAI (если используете openai)
+# OpenAI
 modal secret create openai OPENAI_API_KEY=sk-...
 
 # Telegram секреты
@@ -152,7 +150,6 @@ python-dotenv>=1.2.1
 python-telegram-bot>=21.0
 modal>=0.67.0
 langchain>=1.2.10
-langchain-gigachat-lc1>=0.4.0b4
 langchain-openai>=0.3.0
 langgraph>=1.0.8
 httpx>=0.27.0
