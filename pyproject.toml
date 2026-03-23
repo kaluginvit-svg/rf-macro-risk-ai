@@ -10,6 +10,7 @@ dependencies = [
     "modal>=0.67.0",
     "langchain>=1.2.10",
     "langchain-gigachat-lc1>=0.4.0b4",
+    "langchain-anthropic>=0.3.0",
     "langchain-openai>=0.3.0",
     "langchain-google-genai>=2.1.0",
     "langgraph>=1.0.8",

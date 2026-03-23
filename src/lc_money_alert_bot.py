@@ -1,12 +1,13 @@
 """
 LangChain агент для макро-оценки экономики РФ (6 месяцев).
-Поддерживает провайдеры: GigaChat, OpenAI, Gemini.
+Поддерживает провайдеры: GigaChat, OpenAI, Gemini, Anthropic.
 
 Запуск:
-  uv run python src/lc_money_alert_bot.py                    # OpenAI (по умолчанию)
-  uv run python src/lc_money_alert_bot.py --provider openai  # OpenAI (gpt-5.2)
-  uv run python src/lc_money_alert_bot.py --provider gigachat # GigaChat (явно)
-  uv run python src/lc_money_alert_bot.py --provider gemini  # Gemini (gemini-3.1-pro-preview)
+  uv run python src/lc_money_alert_bot.py                      # OpenAI (по умолчанию)
+  uv run python src/lc_money_alert_bot.py --provider openai    # OpenAI (gpt-5.2)
+  uv run python src/lc_money_alert_bot.py --provider gigachat  # GigaChat (явно)
+  uv run python src/lc_money_alert_bot.py --provider gemini    # Gemini (gemini-3.1-pro-preview)
+  uv run python src/lc_money_alert_bot.py --provider anthropic # Anthropic (claude-opus-4-6)
 """
 
 import argparse
@@ -22,6 +23,7 @@ import httpx
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.tools import tool
+from langchain_anthropic import ChatAnthropic
 from langchain_gigachat import GigaChat
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
@@ -234,12 +236,24 @@ def _init_gemini() -> ChatGoogleGenerativeAI:
     )
 
 
+def _init_anthropic() -> ChatAnthropic:
+    """Инициализирует модель Anthropic из переменных окружения."""
+    model_name = os.getenv("ANTHROPIC_MODEL", "claude-opus-4-6")
+
+    return ChatAnthropic(
+        model=model_name,
+        temperature=0,
+        max_tokens=8192,
+    )
+
+
 def _init_model(provider: str):
     """Создаёт LLM по имени провайдера."""
     factories = {
         "gigachat": _init_gigachat,
         "openai": _init_openai,
         "gemini": _init_gemini,
+        "anthropic": _init_anthropic,
     }
     factory = factories.get(provider)
     if factory is None:
@@ -260,12 +274,14 @@ def _estimate_cost(
         "openai:gpt-5.2": {"input": 1.75, "output": 14.00},
         "openai:gpt-5.1": {"input": 1.25, "output": 10.00},
         "gemini": {"input": 2.00, "output": 12.00},  # gemini-3.1-pro-preview (<200K ctx)
+        "anthropic": {"input": 5.00, "output": 25.00},  # claude-opus-4-6
+        "anthropic:claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00},
         # GigaChat — отдельная модель тарификации, считаем 0
     }
-    # Сначала пробуем точный ключ "provider:model", потом просто "provider"
     model_env_map = {
         "openai": "OPENAI_MODEL",
         "gemini": "GEMINI_MODEL",
+        "anthropic": "ANTHROPIC_MODEL",
     }
     model_name = os.getenv(model_env_map.get(provider, ""), "")
     r = rates_per_million.get(f"{provider}:{model_name}") or rates_per_million.get(provider)
@@ -420,6 +436,7 @@ async def run_agent(
         "gigachat": "GigaChat",
         "openai": "OpenAI",
         "gemini": "Gemini",
+        "anthropic": "Anthropic",
     }
     provider_label = provider_labels.get(provider, provider)
 
@@ -469,6 +486,9 @@ async def run_agent(
     elif provider == "gemini":
         model_display = os.getenv("GEMINI_MODEL", "gemini-3.1-pro-preview")
         log(f"🤖 Модель: {model_display} (Gemini)")
+    elif provider == "anthropic":
+        model_display = os.getenv("ANTHROPIC_MODEL", "claude-opus-4-6")
+        log(f"🤖 Модель: {model_display} (Anthropic)")
     else:
         log(f"🤖 Провайдер: {provider}")
 
@@ -848,13 +868,13 @@ async def main():
     )
     parser.add_argument(
         "--provider",
-        choices=["gigachat", "openai", "gemini"],
+        choices=["gigachat", "openai", "gemini", "anthropic"],
         default=os.getenv("MODEL_PROVIDER", "openai"),
         help="Провайдер LLM (по умолчанию: openai, или из MODEL_PROVIDER)",
     )
     args = parser.parse_args()
 
-    provider_labels = {"gigachat": "GigaChat", "openai": "OpenAI", "gemini": "Gemini"}
+    provider_labels = {"gigachat": "GigaChat", "openai": "OpenAI", "gemini": "Gemini", "anthropic": "Anthropic"}
     provider_label = provider_labels.get(args.provider, args.provider)
 
     with Logger() as logger:

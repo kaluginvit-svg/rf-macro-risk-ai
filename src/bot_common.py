@@ -153,8 +153,40 @@ def format_criteria_for_prompt(criteria_data: dict) -> str:
     )
 
 
+TELEGRAM_MSG_LIMIT = 4096
+
+
+def _sanitize_truncated_html(text: str) -> str:
+    """Remove incomplete HTML tags and close unclosed <a> tags after truncation."""
+    last_lt = text.rfind("<")
+    if last_lt != -1 and ">" not in text[last_lt:]:
+        text = text[:last_lt].rstrip()
+
+    open_count = len(re.findall(r"<a[\s>]", text, re.IGNORECASE))
+    close_count = len(re.findall(r"</a>", text, re.IGNORECASE))
+    text += "</a>" * max(0, open_count - close_count)
+
+    return text
+
+
+def _truncate_field(text: str, max_chars: int) -> str:
+    """Обрезает строку до max_chars, сохраняя ссылки [N] на конце если возможно."""
+    if not text or len(text) <= max_chars:
+        return text
+    ref_match = re.search(r"\s*(\[\d+\](?:\[\d+\])*)\s*$", text)
+    if ref_match and ref_match.start() < max_chars - 5:
+        refs = ref_match.group(1)
+        return text[: max_chars - len(refs) - 1].rstrip() + "…" + refs
+    return text[: max_chars - 1] + "…"
+
+
 def format_telegram_report(result: dict, stats: dict) -> str:
-    """Форматирует отчёт для отправки в Telegram (HTML-формат с кликабельными ссылками)."""
+    """Форматирует отчёт для отправки в Telegram (HTML-формат с кликабельными ссылками).
+
+    Гарантирует, что итоговое сообщение ≤ TELEGRAM_MSG_LIMIT (4096).
+    При превышении подрезает блок ``<blockquote expandable>`` со сработавшими
+    критериями — он и так свёрнут для читателя.
+    """
     final_result = result.get("result")
 
     # Маппинг [N] → URL из поля sources
@@ -209,30 +241,33 @@ def format_telegram_report(result: dict, stats: dict) -> str:
         lines.append("")
 
         triggered = final_result.get("triggered_criteria", [])
+        # Placeholder for the blockquote — will be filled / trimmed later
+        _BQ_PLACEHOLDER = "%%TRIGGERED_BLOCKQUOTE%%"
         if triggered:
             lines.append("⚠️ Сработавшие критерии:")
-            items: list[str] = []
+            bq_items: list[str] = []
             for t in triggered:
                 crit_id = html.escape(str(t.get("id", "?")))
-                evidence = t.get("evidence", "") or ""
-                items.append(f"• {crit_id}: {_linkify(evidence)}")
-            # Telegram HTML поддерживает сворачиваемые цитаты:
-            # <blockquote expandable>...</blockquote>
-            lines.append(f"<blockquote expandable>{'\n'.join(items)}</blockquote>")
+                evidence = _truncate_field(t.get("evidence", "") or "", 130)
+                bq_items.append(f"• {crit_id}: {_linkify(evidence)}")
+            lines.append(_BQ_PLACEHOLDER)
             lines.append("")
         else:
+            bq_items = []
             lines.append("✅ Сработавших критериев нет")
 
-        lines.append(f"📝 Резюме: {_linkify(final_result.get('summary', 'Нет данных'))}")
-        lines.append(f"💡 Рекомендация: {_linkify(final_result.get('recommendation', 'Нет данных'))}")
+        summary = _truncate_field(final_result.get("summary", "Нет данных"), 230)
+        recommendation = _truncate_field(final_result.get("recommendation", "Нет данных"), 180)
+        lines.append(f"📝 Резюме: {_linkify(summary)}")
+        lines.append(f"💡 Рекомендация: {_linkify(recommendation)}")
 
         asset_guidance = final_result.get("asset_guidance", []) or []
         if asset_guidance:
             lines.append("")
             lines.append("💼 Активы:")
-            for item in asset_guidance[:6]:
+            for item in asset_guidance[:3]:
                 text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {_linkify(text)}")
+                lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
 
         positive = final_result.get("positive_trends", []) or []
         negative = final_result.get("negative_trends", []) or []
@@ -242,32 +277,34 @@ def format_telegram_report(result: dict, stats: dict) -> str:
         if positive:
             lines.append("")
             lines.append("🟢 Позитивные тенденции:")
-            for item in positive[:4]:
+            for item in positive[:2]:
                 text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {_linkify(text)}")
+                lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
 
         if negative:
             lines.append("")
             lines.append("🔴 Негативные тенденции:")
-            for item in negative[:4]:
+            for item in negative[:2]:
                 text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {_linkify(text)}")
+                lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
 
         if risks_6m:
             lines.append("")
             lines.append("⚠️ Риски на 6 месяцев:")
-            for item in risks_6m[:4]:
+            for item in risks_6m[:2]:
                 text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {_linkify(text)}")
+                lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
 
         if watchlist:
             lines.append("")
             lines.append("👀 Watchlist:")
-            for item in watchlist[:6]:
+            for item in watchlist[:3]:
                 text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {html.escape(text)}")
+                lines.append(f"  • {html.escape(_truncate_field(text, 120))}")
 
     else:
+        bq_items = []
+        _BQ_PLACEHOLDER = "%%TRIGGERED_BLOCKQUOTE%%"
         lines.append("⚠️ Не удалось получить результат от агента")
 
     model = stats.get("model")
@@ -286,7 +323,95 @@ def format_telegram_report(result: dict, stats: dict) -> str:
         ]
     )
 
-    return "\n".join(lines)
+    # ── Подгоняем под лимит Telegram, подрезая blockquote ──
+    report = "\n".join(lines)
+
+    if _BQ_PLACEHOLDER not in report or not bq_items:
+        # Нет блока с критериями — просто убираем плейсхолдер
+        return report.replace(_BQ_PLACEHOLDER, "")
+
+    bq_wrap_len = len("<blockquote expandable>") + len("</blockquote>")
+    shell_len = len(report) - len(_BQ_PLACEHOLDER) + bq_wrap_len
+
+    available = TELEGRAM_MSG_LIMIT - shell_len - 10  # запас 10 символов
+    if available < 0:
+        available = 0
+
+    # Набираем столько пунктов, сколько влезет
+    fitted: list[str] = []
+    used = 0
+    for item in bq_items:
+        # +1 за символ '\n' между пунктами
+        cost = len(item) + (1 if fitted else 0)
+        if used + cost <= available:
+            fitted.append(item)
+            used += cost
+        else:
+            # Пытаемся добавить обрезанный пункт
+            remaining = available - used - (1 if fitted else 0)
+            if remaining > 30:
+                fitted.append(
+                    _sanitize_truncated_html(item[: remaining - 1]) + "…"
+                )
+            break
+
+    if fitted:
+        bq_html = f"<blockquote expandable>{chr(10).join(fitted)}</blockquote>"
+    else:
+        bq_html = ""
+
+    return report.replace(_BQ_PLACEHOLDER, bq_html)
+
+
+def _split_message(text: str, limit: int = TELEGRAM_MSG_LIMIT) -> list[str]:
+    """Разбивает длинное сообщение на части, не превышающие limit символов."""
+    if len(text) <= limit:
+        return [text]
+
+    parts: list[str] = []
+    while text:
+        if len(text) <= limit:
+            parts.append(text)
+            break
+
+        # Ищем последний перенос строки в пределах лимита
+        cut = text.rfind("\n", 0, limit)
+        if cut <= 0:
+            cut = limit
+
+        parts.append(text[:cut])
+        text = text[cut:].lstrip("\n")
+
+    return parts
+
+
+async def _send_message_parts(
+    bot: Bot,
+    chat_id: str,
+    text: str,
+    *,
+    parse_mode: str | None = None,
+) -> None:
+    """Отправляет сообщение, при необходимости разбивая на части."""
+    parts = _split_message(text)
+    for part in parts:
+        try:
+            await bot.send_message(
+                chat_id=chat_id,
+                text=part,
+                parse_mode=parse_mode,
+                disable_web_page_preview=True,
+            )
+        except Exception as exc:
+            if parse_mode and "parse entities" in str(exc).lower():
+                plain = re.sub(r"<[^>]+>", "", part)
+                await bot.send_message(
+                    chat_id=chat_id,
+                    text=plain,
+                    disable_web_page_preview=True,
+                )
+            else:
+                raise
 
 
 async def send_telegram_report(report: str) -> bool:
@@ -306,12 +431,7 @@ async def send_telegram_report(report: str) -> bool:
 
     try:
         bot = Bot(token=token)
-        await bot.send_message(
-            chat_id=chat_id,
-            text=report,
-            parse_mode="HTML",
-            disable_web_page_preview=True,
-        )
+        await _send_message_parts(bot, chat_id, report, parse_mode="HTML")
         print(f"✅ Отчёт отправлен в Telegram (chat_id: {chat_id})")
         return True
     except asyncio.CancelledError:
@@ -339,12 +459,7 @@ async def notify_admin(message: str, *, parse_mode: str | None = None) -> bool:
 
     try:
         bot = Bot(token=token)
-        await bot.send_message(
-            chat_id=admin_chat_id,
-            text=message,
-            parse_mode=parse_mode,
-            disable_web_page_preview=True,
-        )
+        await _send_message_parts(bot, admin_chat_id, message, parse_mode=parse_mode)
         print(f"✅ Уведомление отправлено админу (chat_id: {admin_chat_id})")
         return True
     except asyncio.CancelledError:
@@ -545,12 +660,26 @@ WebFetch: https://t.me/s/money_alert_ai
 7) Я сформировал ЧЕРНОВИК JSON и проверил:
    - `checked_criteria` содержит ВСЕ id критериев (ничего не пропущено)
    - у каждого факта/тезиса есть ссылка [N], и в `sources` есть соответствующий URL
-   - длины: summary ≤ 220 символов, recommendation ≤ 170, пункты трендов/рисков ≤ 140
+   - длины: summary ≤ 220, recommendation ≤ 170, evidence ≤ 120, пункты трендов/рисков/активов ≤ 120, watchlist ≤ 100
    - total_score = сумма весов triggered_criteria; risk_level соответствует порогам из критериев/правил
 8) Если хоть один пункт нарушен — исправь черновик и проверь заново. В ответе выводи только финальный валидный JSON.
 ```
 
 ⚠️ **ВАЖНО:** В финальном ответе выдай **ТОЛЬКО** JSON-объект (без markdown и без текста вокруг).
+
+## 📏 ЛИМИТЫ ДЛИНЫ (КРИТИЧНО — Telegram обрезает длинные сообщения!)
+
+Итоговый отчёт отправляется в Telegram, где лимит сообщения — 4096 символов. Поэтому:
+- **evidence** в triggered_criteria: **макс 120 символов** (только ключевой факт + [N])
+- **summary**: макс 220 символов
+- **recommendation**: макс 170 символов
+- Пункты в positive_trends, negative_trends, key_risks_6m, asset_guidance: **макс 120 символов** каждый
+- watchlist: макс 100 символов каждый
+- positive_trends и negative_trends: **макс 2 пункта** каждый
+- key_risks_6m: **макс 2 пункта**
+- watchlist: **макс 3 пункта**
+- asset_guidance: **макс 3 пункта**
+- **Будь лаконичен!** Один факт — одна цифра — одна ссылка. Не перечисляй всё найденное.
 
 ## 📎 ИСТОЧНИКИ (ОБЯЗАТЕЛЬНО!)
 
@@ -559,41 +688,51 @@ WebFetch: https://t.me/s/money_alert_ai
 - Нумерация сквозная: [1], [2], [3]...
 - Если для факта нет подтверждённого URL — не ссылайся
 
+### 🚫 ФИЛЬТРАЦИЯ ИСТОЧНИКОВ (КРИТИЧНО!)
+
+В финальный JSON (поле `sources` и ссылки [N] в текстовых полях) **включай ТОЛЬКО** ссылки на ресурсы в доменной зоне **.ru** (например: cbr.ru, rbc.ru, kommersant.ru, tass.ru, ria.ru, interfax.ru, vedomosti.ru, banki.ru, minfin.gov.ru и т.д.).
+
+**НЕ включай** в `sources` и не ссылайся [N] на:
+- Ресурсы вне зоны .ru (bloomberg.com, reuters.com, ft.com, bbc.com и т.д.)
+- СМИ, признанные иноагентами по законодательству РФ (meduza.io, novayagazeta.eu, theins.ru, mediazona.io, dozhd.tv/tvrain.tv, holod.media, istories.media, thebell.io, zona.media, currenttime.tv, svoboda.org, rferl.org и др.)
+
+Ты МОЖЕШЬ использовать эти ресурсы как ИСТОЧНИК ИНФОРМАЦИИ при поиске и анализе, но в итоговый отчёт (JSON) их URL попадать не должны. Если факт подтверждён только таким источником — перепроверь через .ru-ресурс или укажи факт без ссылки.
+
 ## ФОРМАТ ИТОГА
 
 ```json
 {{
   "checked_criteria": ["id1", "id2", ...],
   "triggered_criteria": [
-    {{"id": "criterion_id", "evidence": "что именно произошло [1]", "confidence": 0.9}}
+    {{"id": "criterion_id", "evidence": "что именно произошло, до 120 символов [1]", "confidence": 0.9}}
   ],
   "total_score": <сумма весов сработавших критериев>,
   "risk_level": "green/yellow/red",
   "confidence": "high/medium/low",
   "deposit_access_risk": "green/yellow/red",
-  "summary": "1-2 предложения, максимум 220 символов",
-  "recommendation": "1 предложение, максимум 170 символов",
+  "summary": "1-2 предложения, МАКС 220 символов",
+  "recommendation": "1 предложение, МАКС 170 символов",
   "asset_guidance": [
-    "Вклады: что делать/не делать (до 140 символов) [8]",
-    "Наличность/карты: что учитывать (до 140 символов) [9]",
-    "Валюта/золото/недвижимость: как мыслить о рисках (до 140 символов) [10]"
+    "Вклады: кратко (МАКС 120 символов) [8]",
+    "Наличность: кратко (МАКС 120 символов) [9]",
+    "Валюта/недвижимость: кратко (МАКС 120 символов) [10]"
   ],
   "positive_trends": [
-    "Позитивный тренд 1 (до 140 символов) [2]",
-    "Позитивный тренд 2 (до 140 символов) [3]"
+    "Позитивный тренд (МАКС 120 символов) [2]",
+    "Позитивный тренд (МАКС 120 символов) [3]"
   ],
   "negative_trends": [
-    "Негативный тренд 1 (до 140 символов) [4]",
-    "Негативный тренд 2 (до 140 символов) [5]"
+    "Негативный тренд (МАКС 120 символов) [4]",
+    "Негативный тренд (МАКС 120 символов) [5]"
   ],
   "key_risks_6m": [
-    "Риск на 6м 1 (до 140 символов) [6]",
-    "Риск на 6м 2 (до 140 символов) [7]"
+    "Риск на 6м (МАКС 120 символов) [6]",
+    "Риск на 6м (МАКС 120 символов) [7]"
   ],
   "watchlist": [
-    "Индикатор/что мониторить (до 120 символов)",
-    "Индикатор/что мониторить (до 120 символов)",
-    "Индикатор/что мониторить (до 120 символов)"
+    "Что мониторить (МАКС 100 символов)",
+    "Что мониторить (МАКС 100 символов)",
+    "Что мониторить (МАКС 100 символов)"
   ],
   "sources": [
     {{"id": 1, "url": "https://..."}},
