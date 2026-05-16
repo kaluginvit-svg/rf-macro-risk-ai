@@ -87,6 +87,9 @@ async def run_periodic_check():
         send_telegram_report,
         notify_admin,
         Logger,
+        load_run_history,
+        save_run_result,
+        build_history_trend,
     )
     
     # Уведомление о старте
@@ -94,6 +97,10 @@ async def run_periodic_check():
 
     with Logger() as logger:
         result = await run_agent(criteria_file, logger)
+        # run_agent уже сохраняет историю; подгружаем обновлённую для тренда
+        history = load_run_history()
+        run_id = result["stats"].get("run_id")
+        result["stats"]["history_trend"] = build_history_trend(history, run_id)
         report = format_telegram_report(result, result["stats"])
         
         if result and result.get("result"):

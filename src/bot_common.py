@@ -158,12 +158,83 @@ def format_criteria_for_prompt(criteria_data: dict) -> str:
         f"🔴 red (ВЫСОКИЙ): total_score {r.get('min', 25)}+\n\n"
         f"### КРИТЕРИИ ДЛЯ ПРОВЕРКИ ({len(criteria_data['criteria'])} шт.)\n"
     )
+    speed_label = {"fast": "⚡БЫСТРЫЙ", "medium": "📅СРЕДНИЙ", "slow": "🐢МЕДЛЕННЫЙ"}
     body = "\n".join(
-        f"### {c['id']} (вес: {c['weight']})\n**{c['name']}**\n{c['description']}\nПоисковый запрос: `{c['search_query']}`\n"
+        f"### {c['id']} (вес: {c['weight']}) [{speed_label.get(c.get('speed', 'medium'), '📅СРЕДНИЙ')}]\n"
+        f"**{c['name']}**\n{c['description']}\nПоисковый запрос: `{c['search_query']}`\n"
         for c in criteria_data["criteria"]
     )
     return header + body
 
+
+# ─────────────────────── Run history ────────────────────────
+
+_default_history_path = Path(__file__).parent.parent / "runs_history.json"
+RUNS_HISTORY_FILE = Path(os.getenv("RUNS_HISTORY_FILE", str(_default_history_path)))
+
+
+def load_run_history() -> dict:
+    """Загружает историю прогонов из файла."""
+    if RUNS_HISTORY_FILE.exists():
+        try:
+            with open(RUNS_HISTORY_FILE, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"runs": []}
+
+
+def get_last_run_info(history: dict) -> tuple[int, str | None, str | None, int | None]:
+    """Возвращает (next_run_id, last_timestamp_iso, last_risk_level, last_score)."""
+    runs = history.get("runs", [])
+    if not runs:
+        return 1, None, None, None
+    last = runs[-1]
+    return last["run_id"] + 1, last.get("timestamp"), last.get("risk_level"), last.get("total_score")
+
+
+def save_run_result(
+    history: dict,
+    run_id: int,
+    result: dict | None,
+    stats: dict,
+    criteria_file: str,
+) -> None:
+    """Сохраняет результат прогона в историю."""
+    from datetime import timezone
+
+    entry = {
+        "run_id": run_id,
+        "timestamp": datetime.now(timezone.utc).astimezone().isoformat(),
+        "risk_level": (result or {}).get("risk_level", "unknown"),
+        "total_score": (result or {}).get("total_score", 0),
+        "triggered_ids": [t["id"] for t in ((result or {}).get("triggered_criteria") or [])],
+        "criteria_file": criteria_file,
+        "model": stats.get("model", ""),
+        "cost_usd": stats.get("cost_usd", 0),
+    }
+    history.setdefault("runs", []).append(entry)
+    try:
+        with open(RUNS_HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ Не удалось сохранить историю прогонов: {e}")
+
+
+def build_history_trend(history: dict, current_run_id: int, max_items: int = 5) -> str:
+    """Строит строку с трендом последних прогонов для Telegram-отчёта."""
+    runs = history.get("runs", [])
+    if not runs:
+        return ""
+    emoji_map = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
+    items = [
+        f"#{r['run_id']}{emoji_map.get(r.get('risk_level',''), '❓')}{r.get('total_score', '?')}"
+        for r in runs[-max_items:]
+    ]
+    return " → ".join(items)
+
+
+# ─────────────────────────────────────────────────────────────
 
 TELEGRAM_MSG_LIMIT = 4096
 
@@ -324,16 +395,22 @@ def format_telegram_report(result: dict, stats: dict) -> str:
     if model:
         cost_line += f" | 🤖 Модель: {html.escape(str(model))}"
 
-    lines.extend(
-        [
-            "",
-            "-" * 30,
-            f"⏱️ {stats['time_seconds']:.0f}с | 📝 Шагов: {stats['steps']} | 🔍 Поисков: {stats['tool_calls']}",
-            cost_line,
-            "",
-            "Не является инвестиционной рекомендацией.",
-        ]
-    )
+    history_trend = stats.get("history_trend", "")
+    run_id = stats.get("run_id")
+
+    footer_lines = ["", "-" * 30]
+    if run_id:
+        run_line = f"🔢 Прогон #{run_id}"
+        if history_trend:
+            run_line += f" | 📈 {history_trend}"
+        footer_lines.append(run_line)
+    footer_lines.extend([
+        f"⏱️ {stats['time_seconds']:.0f}с | 📝 Шагов: {stats['steps']} | 🔍 Поисков: {stats['tool_calls']}",
+        cost_line,
+        "",
+        "Не является инвестиционной рекомендацией.",
+    ])
+    lines.extend(footer_lines)
 
     # ── Подгоняем под лимит Telegram, подрезая blockquote ──
     report = "\n".join(lines)
@@ -573,7 +650,20 @@ def _parse_telegram_posts(raw_html: str) -> list[dict]:
 
 SYSTEM_PROMPT = """Ты — аналитик макроэкономических и финансовых рисков России. Твоя задача — по новостному фону и официальным данным оценить, к чему идёт экономика РФ (негативные и позитивные тенденции) и каков риск кризисного сценария на горизонте 6 месяцев.
 
-📅 **Сейчас: {today_date}**
+📅 **Сейчас: {today_date}** | 🔢 **Прогон №{run_id}**
+
+## 📊 КОНТЕКСТ ПРОГОНА
+
+{last_run_info}
+
+## ⏱️ ВРЕМЕННЫЕ ОКНА ДЛЯ ПОИСКА
+
+Каждый критерий помечен меткой скорости. Используй РАЗНЫЕ горизонты поиска:
+
+- ⚡ **БЫСТРЫЙ** — ищи события **{fast_window}**
+  → Цель: что НОВОГО случилось с момента прошлого прогона, а не текущее состояние
+- 📅 **СРЕДНИЙ** — ищи текущее состояние и тренды за **последние 30 дней**
+- 🐢 **МЕДЛЕННЫЙ** — ищи последние официальные данные за **квартал/месяц**
 
 ## ⚠️ ЛИМИТЫ
 

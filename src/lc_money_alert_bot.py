@@ -45,6 +45,10 @@ from bot_common import (
     notify_admin,
     _extract_first_json_object,
     SYSTEM_PROMPT,
+    load_run_history,
+    get_last_run_info,
+    save_run_result,
+    build_history_trend,
 )
 
 load_dotenv()
@@ -457,6 +461,11 @@ async def run_agent(
     criteria_text = format_criteria_for_prompt(criteria_data)
     log(f"📋 Загружено критериев: {len(criteria_data['criteria'])}")
 
+    # ── История прогонов ──
+    run_history = load_run_history()
+    run_id, last_ts, last_level, last_score = get_last_run_info(run_history)
+    log(f"🔢 Прогон №{run_id}" + (f" | предыдущий: {last_ts}" if last_ts else " | первый прогон"))
+
     # ── Настройки ──
     search_limit = 50
     max_turns = int(os.getenv("MAX_TURNS", "100"))
@@ -465,10 +474,31 @@ async def run_agent(
     now_msk = datetime.now(moscow_tz)
     today_date = now_msk.strftime("%d.%m.%Y, %H:%M МСК")
 
+    # Формируем контекст прошлого прогона и временное окно для быстрых критериев
+    risk_emoji = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
+    if last_ts:
+        from datetime import datetime as _dt
+        try:
+            last_dt = _dt.fromisoformat(last_ts)
+            last_date_fmt = last_dt.strftime("%d.%m.%Y %H:%M")
+        except Exception:
+            last_date_fmt = last_ts
+        last_run_info = (
+            f"Предыдущий прогон: №{run_id - 1} от {last_date_fmt} | "
+            f"Оценка: {last_score} ({risk_emoji.get(last_level, '❓')} {last_level})"
+        )
+        fast_window = f"с {last_date_fmt} по {today_date}"
+    else:
+        last_run_info = "Первый прогон — исторической базы нет. Ищи события за последние 7 дней."
+        fast_window = "последние 7 дней"
+
     prompt = SYSTEM_PROMPT.format(
         criteria=criteria_text,
         search_limit=search_limit,
         today_date=today_date,
+        run_id=run_id,
+        last_run_info=last_run_info,
+        fast_window=fast_window,
     )
 
     # ── Модель ──
@@ -814,17 +844,23 @@ async def run_agent(
         )
     log("=" * 60)
 
+    # ── Сохраняем прогон в историю ──
+    stats = {
+        "steps": step_count,
+        "tool_calls": tool_calls_count,
+        "time_seconds": total_time,
+        "input_tokens": total_input_tokens,
+        "output_tokens": total_output_tokens,
+        "cost_usd": total_cost,
+        "model": f"{provider}:{model_display}",
+        "run_id": run_id,
+    }
+    save_run_result(run_history, run_id, final_result, stats, criteria_path)
+    stats["history_trend"] = build_history_trend(run_history, run_id)
+
     return {
         "result": final_result,
-        "stats": {
-            "steps": step_count,
-            "tool_calls": tool_calls_count,
-            "time_seconds": total_time,
-            "input_tokens": total_input_tokens,
-            "output_tokens": total_output_tokens,
-            "cost_usd": total_cost,
-            "model": f"{provider}:{model_display}",
-        },
+        "stats": stats,
     }
 
 
