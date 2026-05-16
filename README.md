@@ -35,8 +35,8 @@ AI-агент для **макро-оценки экономики РФ**: нег
 
 ```bash
 # Клонировать репозиторий
-git clone https://github.com/Rai220/money_alert_ai.git
-cd money_alert_ai
+git clone https://github.com/kaluginvit-svg/rf-macro-risk-ai.git
+cd rf-macro-risk-ai
 
 # Скопировать пример конфигурации и заполнить своими ключами
 cp .env.example .env
