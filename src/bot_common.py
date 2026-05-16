@@ -147,10 +147,22 @@ def load_criteria(path: str = "criteria.json") -> dict:
 
 def format_criteria_for_prompt(criteria_data: dict) -> str:
     """Форматирует критерии для промпта агенту."""
-    return "\n".join(
+    thresholds = criteria_data.get("thresholds", {})
+    g = thresholds.get("green", {})
+    y = thresholds.get("yellow", {})
+    r = thresholds.get("red", {})
+    header = (
+        f"### ПОРОГИ RISK_LEVEL (использовать при выставлении risk_level и deposit_access_risk)\n"
+        f"🟢 green (НИЗКИЙ): total_score {g.get('min', 0)}–{g.get('max', 11)}\n"
+        f"🟡 yellow (СРЕДНИЙ): total_score {y.get('min', 12)}–{y.get('max', 24)}\n"
+        f"🔴 red (ВЫСОКИЙ): total_score {r.get('min', 25)}+\n\n"
+        f"### КРИТЕРИИ ДЛЯ ПРОВЕРКИ ({len(criteria_data['criteria'])} шт.)\n"
+    )
+    body = "\n".join(
         f"### {c['id']} (вес: {c['weight']})\n**{c['name']}**\n{c['description']}\nПоисковый запрос: `{c['search_query']}`\n"
         for c in criteria_data["criteria"]
     )
+    return header + body
 
 
 TELEGRAM_MSG_LIMIT = 4096
@@ -661,7 +673,7 @@ WebFetch: https://t.me/s/money_alert_ai
    - `checked_criteria` содержит ВСЕ id критериев (ничего не пропущено)
    - у каждого факта/тезиса есть ссылка [N], и в `sources` есть соответствующий URL
    - длины: summary ≤ 220, recommendation ≤ 170, evidence ≤ 120, пункты трендов/рисков/активов ≤ 120, watchlist ≤ 100
-   - total_score = сумма весов triggered_criteria; risk_level соответствует порогам из критериев/правил
+   - total_score = сумма весов triggered_criteria; risk_level выставляется СТРОГО по порогам из раздела "ПОРОГИ RISK_LEVEL" в начале блока критериев
 8) Если хоть один пункт нарушен — исправь черновик и проверь заново. В ответе выводи только финальный валидный JSON.
 ```
 
