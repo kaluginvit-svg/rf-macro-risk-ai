@@ -4,6 +4,8 @@ AI-агент для **макро-оценки экономики РФ**: нег
 
 Ведёт Telegram-канал [@money_alert_ai](https://t.me/money_alert_ai)
 
+> **Based on** [Rai220/money_alert_ai](https://github.com/Rai220/money_alert_ai) by Konstantin Krestnikov — спасибо за оригинальную архитектуру.
+
 ## 🎯 Что делает
 
 Анализирует новостной фон по набору критериев риска и выдаёт оценку риска кризисного сценария (6м):
