@@ -124,13 +124,31 @@ modal app logs money-alert-bot
 
 Критерии загружаются из `criteria.json` (по умолчанию) или из файла, заданного в `CRITERIA_FILE`.
 
-- `criteria.json`: макро-критерии (негатив/позитив тенденции + риск кризисного сценария на 6 месяцев)
-- `criteria_deposit_freeze.json`: старый профиль «риск заморозки вкладов» (оставлен для совместимости/архива)
+- `criteria.json`: **35 критериев** — макро-риски РФ (тенденции + риск кризисного сценария на 6 месяцев)
+- `criteria_small.json`: **10 критериев** — сокращённый набор для дешёвых тестовых прогонов
+- `criteria_deposit_freeze.json`: архив — старый профиль «риск заморозки вкладов»
+
+**Структура критерия:**
+```json
+{
+  "id": "cb_emergency_rate_hike",
+  "name": "Внеплановое экстренное повышение ключевой ставки ЦБ",
+  "description": "...",
+  "search_query": "...",
+  "weight": 15,
+  "speed": "fast"
+}
+```
+
+**Поле `speed`** определяет временной горизонт поиска агента:
+- `fast` (⚡) — данные в день прогона; агент ищет события **с момента предыдущего прогона**
+- `medium` (📅) — задержка 1-4 нед.; агент ищет за **последние 30 дней**
+- `slow` (🐢) — задержка 1-2 мес.; агент ищет **последние официальные данные за квартал**
 
 **Пороги риска:**
-- 🟢 **НИЗКИЙ** (green): 0-9 очков — ситуация стабильная
-- 🟡 **СРЕДНИЙ** (yellow): 10-19 очков — повышенное внимание  
-- 🔴 **ВЫСОКИЙ** (red): 20+ очков — срочные меры
+- 🟢 **НИЗКИЙ** (green): 0-11 очков — ситуация стабильная
+- 🟡 **СРЕДНИЙ** (yellow): 12-24 очков — повышенное внимание
+- 🔴 **ВЫСОКИЙ** (red): 25+ очков — срочные меры
 
 ---
 
@@ -167,7 +185,7 @@ langchain-tavily>=0.2.17
 
 **Running the bot locally:** `uv run python src/lc_money_alert_bot.py --provider <openai|gemini|gigachat|anthropic>`. Requires `TAVILY_API_KEY` and an LLM provider key (`OPENAI_API_KEY`, `GOOGLE_API_KEY`/`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, or GigaChat credentials). Telegram is optional (`DISABLE_TELEGRAM=1` to skip).
 
-**Quick test run:** `CRITERIA_FILE=criteria_small.json DISABLE_TELEGRAM=1 uv run python src/lc_money_alert_bot.py --provider openai` — uses 8 criteria instead of 25, finishes in ~30s, costs ~$0.18 (OpenAI) or ~$0.33 (Gemini).
+**Quick test run:** `CRITERIA_FILE=criteria_small.json DISABLE_TELEGRAM=1 uv run python src/lc_money_alert_bot.py --provider openai` — uses 10 criteria instead of 35, finishes in ~30s, costs ~$0.18 (OpenAI) or ~$0.33 (Gemini).
 
 **Gotcha — module-level API key validation:** `src/lc_money_alert_bot.py` cannot be imported or run (even `--help`) without `TAVILY_API_KEY` set, because `TavilySearch()` validates the key at import time (line 64).
 
@@ -177,4 +195,6 @@ langchain-tavily>=0.2.17
 
 **Tests:** No test suite exists. Verify correctness by running the core utilities directly (criteria loading, prompt formatting, report generation — see `src/bot_common.py`), or by running the bot end-to-end with `criteria_small.json`.
 
-**Criteria files:** `criteria.json` (25 criteria, default), `criteria_small.json` (8 criteria, for testing). Set `CRITERIA_FILE=criteria_small.json` for cheaper/faster test runs.
+**Criteria files:** `criteria.json` (35 criteria, default), `criteria_small.json` (10 criteria, for testing). Set `CRITERIA_FILE=criteria_small.json` for cheaper/faster test runs.
+
+**Run history:** Each run appends a record to `runs_history.json` (created automatically). The Telegram report shows a trend line (e.g. `#1🟢8 → #2🟡14 → #3🟢6`). On Modal, history won't persist between container invocations without a Modal Volume — set `RUNS_HISTORY_FILE` to a mounted volume path if needed.

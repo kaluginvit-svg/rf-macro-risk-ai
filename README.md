@@ -8,9 +8,9 @@ AI-агент для **макро-оценки экономики РФ**: нег
 
 Анализирует новостной фон по набору критериев риска и выдаёт оценку риска кризисного сценария (6м):
 
-- 🟢 **НИЗКИЙ** (0-9 очков) — ситуация стабильная
-- 🟡 **СРЕДНИЙ** (10-19 очков) — повышенное внимание
-- 🔴 **ВЫСОКИЙ** (20+ очков) — срочные меры
+- 🟢 **НИЗКИЙ** (0-11 очков) — ситуация стабильная
+- 🟡 **СРЕДНИЙ** (12-24 очков) — повышенное внимание
+- 🔴 **ВЫСОКИЙ** (25+ очков) — срочные меры
 
 ## 🏗️ Архитектура
 
@@ -50,7 +50,7 @@ uv sync
 | Переменная | Обязательно | Описание |
 |------------|-------------|----------|
 | `TAVILY_API_KEY` | ✅ | API ключ Tavily для поиска |
-| `MODEL_PROVIDER` | ✅ | `openai`, `gemini` или `gigachat` |
+| `MODEL_PROVIDER` | ✅ | `openai`, `gemini`, `gigachat` или `anthropic` |
 | `OPENAI_API_KEY` | при `MODEL_PROVIDER=openai` | API ключ OpenAI |
 | `GOOGLE_API_KEY` | при `MODEL_PROVIDER=gemini` | API ключ Google Gemini |
 | `GIGACHAT_USER`/`GIGACHAT_PASSWORD` | при `MODEL_PROVIDER=gigachat` | доступ к GigaChat |
@@ -140,13 +140,14 @@ modal app logs money-alert-bot
 ## 📁 Структура проекта
 
 ```
-├── criteria.json                     # Макро-критерии РФ (по умолчанию)
-├── criteria_small.json               # Сокращённый макро-набор для тестов
-├── criteria_deposit_freeze.json      # Старый профиль: риск заморозки вкладов (архив)
-├── criteria_deposit_freeze_small.json# Сокращённый депозитный набор
+├── criteria.json                     # Макро-критерии РФ — 35 шт. (по умолчанию)
+├── criteria_small.json               # Сокращённый набор — 10 шт. для тестов
+├── criteria_deposit_freeze.json      # Архив: старый профиль «риск заморозки вкладов»
+├── criteria_deposit_freeze_small.json# Архив: сокращённый депозитный набор
+├── runs_history.json                 # История прогонов (создаётся автоматически)
 ├── src/
 │   ├── lc_money_alert_bot.py   # Основной агент (LangChain)
-│   ├── bot_common.py           # Общие утилиты (Telegram, критерии, отчёт, промпт)
+│   ├── bot_common.py           # Утилиты: критерии, история, Telegram, промпт
 │   └── modal_app.py            # Запуск по расписанию на Modal
 └── AGENTS.md             # Подробная документация
 ```
