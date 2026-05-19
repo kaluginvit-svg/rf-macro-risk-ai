@@ -562,6 +562,15 @@
     }
     .footer-stat { display: flex; align-items: center; gap: .3rem; }
 
+    .src-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: .78em;
+      opacity: .85;
+      vertical-align: super;
+    }
+    .src-link:hover { opacity: 1; text-decoration: underline; }
+
     .disclaimer {
       font-size: .75rem;
       color: var(--muted);
@@ -1057,7 +1066,7 @@
       }
       el.innerHTML = items.map(t => {
         const text = typeof t === "string" ? t.replace(/^•\s*/,"") : String(t);
-        return `<li>${escHtml(text)}</li>`;
+        return `<li>${linkify(text, globalSourcesMap)}</li>`;
       }).join("");
     }
 
@@ -1073,15 +1082,33 @@
       return "💼";
     }
 
+    // ───── Linkify [N] → <a href> ─────
+    function linkify(text, sourcesMap) {
+      const escaped = escHtml(String(text || ""));
+      if (!sourcesMap || !Object.keys(sourcesMap).length) return escaped;
+      return escaped.replace(/\[(\d+)\]/g, (match, n) => {
+        const url = sourcesMap[parseInt(n)];
+        if (url) return `<a href="${escHtml(url)}" target="_blank" rel="noopener" class="src-link">[${n}]</a>`;
+        return match;
+      });
+    }
+
     // ───── State ─────
     let criteriaRegistry = [];
     let sortCol = "weight";
     let sortAsc = false;
+    let globalSourcesMap = {};
 
     // ───── Render dashboard ─────
     function render(data) {
       const res = data.result || data;  // support both wrapped and flat
       const level = (res.risk_level || "yellow").toLowerCase();
+
+      // Build sources map id → url
+      globalSourcesMap = {};
+      (res.sources || data.sources || []).forEach(s => {
+        if (s.id != null && s.url) globalSourcesMap[s.id] = s.url;
+      });
       const color = riskColor(level);
       const score = res.total_score || 0;
       const maxScore = res.max_score || 330;
@@ -1141,7 +1168,7 @@
             <span class="weight-badge ${wc}">+${c.weight || 0}</span>
             <div class="crit-body">
               <div class="crit-name">${escHtml(c.name || c.id || "—")}</div>
-              <div class="crit-evidence">${escHtml(c.evidence || "")}</div>
+              <div class="crit-evidence">${linkify(c.evidence || "", globalSourcesMap)}</div>
             </div>`;
           grid.appendChild(card);
         });
@@ -1150,8 +1177,8 @@
       }
 
       // Summary & Recommendation
-      $("summaryText").textContent = res.summary || "—";
-      $("recommendationText").textContent = res.recommendation || "—";
+      $("summaryText").innerHTML = linkify(res.summary || "—", globalSourcesMap);
+      $("recommendationText").innerHTML = linkify(res.recommendation || "—", globalSourcesMap);
 
       // Trends
       listItems(res.positive_trends, "positiveTrends");

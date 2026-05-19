@@ -15,28 +15,28 @@
     {
       "id": "household_credit_stress",
       "name": "Стресс потребительского кредитования",
-      "evidence": "Просрочка 1,65 трлн руб. (+33% г/г), доля проблемных займов 4,6% — максимум за 5 лет",
+      "evidence": "Просрочка 1,65 трлн руб. (+33% г/г), доля 4,6% — максимум за 5 лет [1][2]",
       "weight": 5,
       "confidence": 0.9
     },
     {
       "id": "corporate_default_wave",
       "name": "Волна корпоративных дефолтов",
-      "evidence": "ЕвроТранс — технический дефолт апрель 2026; аналитики ждут до 30 дефолтов эмитентов по году",
+      "evidence": "ЕвроТранс — техдефолт апрель 2026; аналитики ждут до 30 дефолтов по году [3][4]",
       "weight": 8,
       "confidence": 0.85
     },
     {
       "id": "new_sanctions_trade_finance",
       "name": "Новые санкции с реальным эффектом на платежи",
-      "evidence": "20-й пакет ЕС (14 мая): 20 банков отключены, GPAgent и Платёжка заблокированы",
+      "evidence": "20-й пакет ЕС (14 мая): 20 банков отключены, GPAgent и Платёжка заблокированы [5][6]",
       "weight": 8,
       "confidence": 0.95
     },
     {
       "id": "wage_arrears_spike",
       "name": "Рост задолженности по заработной плате",
-      "evidence": "Долг по зарплатам 2,13 млрд руб. (+47% г/г, март 2026); стройка и производство",
+      "evidence": "Долг по зарплатам 2,13 млрд руб. (+47% г/г, март 2026); стройка и производство [7][8]",
       "weight": 5,
       "confidence": 0.8
     }
@@ -66,11 +66,14 @@
     "Банкротства застройщиков после ужесточения резервных требований ЦБ"
   ],
   "sources": [
-    { "id": 1, "url": "https://cbr.ru/analytics/bank_sector/obs/", "title": "ЦБ РФ — Обзор банковского сектора" },
-    { "id": 2, "url": "https://cbonds.ru/", "title": "Cbonds — корпоративные дефолты" },
-    { "id": 3, "url": "https://www.rbc.ru/", "title": "РБК — 20-й пакет санкций ЕС" },
-    { "id": 4, "url": "https://rosstat.gov.ru/labor_market_employment_salaries", "title": "Росстат — задолженность по зарплате" },
-    { "id": 5, "url": "https://www.vedomosti.ru/", "title": "Ведомости — корпоративный долговой рынок" }
+    { "id": 1, "url": "https://cbr.ru/analytics/bank_sector/obs/", "title": "ЦБ РФ — Обзор банковского сектора, апрель 2026" },
+    { "id": 2, "url": "https://www.nbki.ru/press/pressrelises/", "title": "НБКИ — просрочка потребкредитов, апрель 2026" },
+    { "id": 3, "url": "https://www.moex.com/n/", "title": "Мосбиржа — дефолты эмитентов" },
+    { "id": 4, "url": "https://cbonds.ru/news/", "title": "Cbonds — корпоративные дефолты, май 2026" },
+    { "id": 5, "url": "https://www.rbc.ru/finances/", "title": "РБК — 20-й пакет санкций ЕС, май 2026" },
+    { "id": 6, "url": "https://www.vedomosti.ru/economics/", "title": "Ведомости — отключение GPAgent и Платёжки" },
+    { "id": 7, "url": "https://rosstat.gov.ru/labor_market_employment_salaries", "title": "Росстат — задолженность по зарплате, март 2026" },
+    { "id": 8, "url": "https://rostrud.gov.ru/rostrud/deyatelnost/", "title": "Роструд — мониторинг задолженностей по зарплате" }
   ],
   "stats": {
     "steps": 24,
