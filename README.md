@@ -25,7 +25,7 @@ AI-агент для **макро-оценки экономики РФ**: нег
 
 ## 🌐 Demo
 
-**[kaluginvit-svg.github.io/rf-macro-risk-ai](https://kaluginvit-svg.github.io/rf-macro-risk-ai)** — интерактивная страница с последним обзором, реестром критериев и историей прогонов. Обновляется автоматически через GitHub Actions каждые 3 дня.
+**[kaluginvit-svg.github.io/rf-macro-risk-ai](https://kaluginvit-svg.github.io/rf-macro-risk-ai)** — интерактивная страница с последним обзором, реестром критериев и историей прогонов. Обновляется после каждого локального прогона (`docs/data.json` коммитится в репозиторий).
 
 ## 🚀 Быстрый старт
 
