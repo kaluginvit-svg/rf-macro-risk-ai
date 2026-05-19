@@ -359,31 +359,24 @@ def format_telegram_report(result: dict, stats: dict) -> str:
 
         if positive:
             lines.append("")
-            lines.append("🟢 Позитивные тенденции:")
-            for item in positive[:2]:
+            lines.append("🟢 Позитив:")
+            for item in positive[:1]:
                 text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
                 lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
 
         if negative:
             lines.append("")
-            lines.append("🔴 Негативные тенденции:")
-            for item in negative[:2]:
+            lines.append("🔴 Негатив:")
+            for item in negative[:1]:
                 text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
                 lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
 
         if risks_6m:
             lines.append("")
-            lines.append("⚠️ Риски на 6 месяцев:")
+            lines.append("⚠️ Риски на 6м:")
             for item in risks_6m[:2]:
                 text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
                 lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
-
-        if watchlist:
-            lines.append("")
-            lines.append("👀 Watchlist:")
-            for item in watchlist[:3]:
-                text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {html.escape(_truncate_field(text, 120))}")
 
     else:
         bq_items = []
@@ -398,6 +391,9 @@ def format_telegram_report(result: dict, stats: dict) -> str:
     history_trend = stats.get("history_trend", "")
     run_id = stats.get("run_id")
 
+    searches = stats.get("tool_calls", 0)
+    thoroughness = " (тщательный прогон)" if searches >= 15 else ""
+
     footer_lines = ["", "-" * 30]
     if run_id:
         run_line = f"🔢 Прогон #{run_id}"
@@ -405,7 +401,7 @@ def format_telegram_report(result: dict, stats: dict) -> str:
             run_line += f" | 📈 {history_trend}"
         footer_lines.append(run_line)
     footer_lines.extend([
-        f"⏱️ {stats['time_seconds']:.0f}с | 📝 Шагов: {stats['steps']} | 🔍 Поисков: {stats['tool_calls']}",
+        f"⏱️ {stats['time_seconds']:.0f}с | 📝 Шагов: {stats['steps']} | 🔍 Поисков: {searches}{thoroughness}",
         cost_line,
         "",
         "Не является инвестиционной рекомендацией.",
