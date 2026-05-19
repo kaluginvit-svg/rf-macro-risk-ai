@@ -1380,25 +1380,143 @@
         });
       });
 
-      // ───── Load data ─────
-      fetch("./data.json")
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
-          return r.json();
-        })
-        .then(data => {
+      // ───── Load data (inline-first, fetch as freshness update) ─────
+      function showError(msg) {
+        $("loadingState").style.display = "none";
+        $("errorState").style.display = "";
+        $("errorMsg").textContent = msg || "Неизвестная ошибка при загрузке данных";
+      }
+
+      const inlineEl = document.getElementById("report-data");
+      let loadedFromInline = false;
+      if (inlineEl) {
+        try {
+          const inlineData = JSON.parse(inlineEl.textContent);
           $("loadingState").style.display = "none";
-          render(data);
-        })
-        .catch(err => {
-          console.error("[RF Macro Outlook AI] Failed to load data.json:", err);
-          $("loadingState").style.display = "none";
-          $("errorState").style.display = "";
-          $("errorMsg").textContent = err.message || "Неизвестная ошибка при загрузке data.json";
-        });
+          render(inlineData);
+          loadedFromInline = true;
+        } catch(e) {
+          console.warn("[RF Macro] inline parse failed:", e);
+        }
+      }
+
+      if (!loadedFromInline) {
+        fetch("./data.json")
+          .then(r => {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+          })
+          .then(data => {
+            $("loadingState").style.display = "none";
+            render(data);
+          })
+          .catch(err => {
+            console.error("[RF Macro] Failed to load data.json:", err);
+            showError(err.message);
+          });
+      }
     });
 
   })();
+  </script>
+
+  <!-- Inline report data — updated automatically by export_web_report() on each bot run -->
+  <script id="report-data" type="application/json">
+{
+  "updated_at": "2026-05-19T12:00:00+03:00",
+  "run_id": 1,
+  "risk_level": "yellow",
+  "total_score": 26,
+  "max_score": 330,
+  "thresholds": {
+    "green": { "min": 0, "max": 12, "label": "НИЗКИЙ", "emoji": "🟢" },
+    "yellow": { "min": 13, "max": 26, "label": "СРЕДНИЙ", "emoji": "🟡" },
+    "red": { "min": 27, "max": 999, "label": "ВЫСОКИЙ", "emoji": "🔴" }
+  },
+  "confidence": "medium",
+  "deposit_access_risk": "green",
+  "triggered_criteria": [
+    { "id": "household_credit_stress", "name": "Стресс потребительского кредитования", "evidence": "Просрочка 1,65 трлн руб. (+33% г/г), доля 4,6% — максимум за 5 лет [1][2]", "weight": 5, "confidence": 0.9 },
+    { "id": "corporate_default_wave", "name": "Волна корпоративных дефолтов", "evidence": "ЕвроТранс — техдефолт апрель 2026; аналитики ждут до 30 дефолтов по году [3][4]", "weight": 8, "confidence": 0.85 },
+    { "id": "new_sanctions_trade_finance", "name": "Новые санкции с реальным эффектом на платежи", "evidence": "20-й пакет ЕС (14 мая): 20 банков отключены, GPAgent и Платёжка заблокированы [5][6]", "weight": 8, "confidence": 0.95 },
+    { "id": "wage_arrears_spike", "name": "Рост задолженности по заработной плате", "evidence": "Долг по зарплатам 2,13 млрд руб. (+47% г/г, март 2026); стройка и производство [7][8]", "weight": 5, "confidence": 0.8 }
+  ],
+  "summary": "Экономика РФ удерживает устойчивость — высокая нефть и цикл снижения ставки поддерживают стабильность. Острых системных рисков нет. Нарастают структурные уязвимости: потребкредитный цикл ухудшается, корпоративный долг под давлением, санкционный налог на платёжные каналы растёт.",
+  "recommendation": "Вклады в топ-банках с гос. участием безопасны в пределах АСВ (1,4 млн/банк). Следить за развитием корпоративных дефолтов и НПЛ банков.",
+  "positive_trends": [
+    "ЦБ снизил ставку до 14,5%, инфляция замедлилась до 5,5% — цикл смягчения начат",
+    "Urals $65–110/барр., РЖД погрузка +1,9% г/г — реальная экономическая активность растёт"
+  ],
+  "negative_trends": [
+    "20-й пакет ЕС (май 2026) системно ухудшает платёжные каналы для импорта из Азии",
+    "Корпоративный кредитный цикл: рост дефолтов продолжится при ставке 14,5%"
+  ],
+  "key_risks_6m": [
+    "Нарастание корпоративных дефолтов → давление на банковский NPL и прибыльность",
+    "Замена заблокированных платёжных каналов (GPAgent, Платёжка) затруднит импорт из Азии"
+  ],
+  "asset_guidance": [
+    "Вклады: распределить по нескольким гос. банкам (Сбер, ВТБ, ГПБ), лимит АСВ 1,4 млн/банк",
+    "Валюта: Mir/СБП под санкциями ЕС — международные переводы усложнились, юань как альтернатива",
+    "ОФЗ: снижение ставки поддерживает длинные бумаги, учитывать бюджетный риск"
+  ],
+  "watchlist": [
+    "Заседание ЦБ 19 июня 2026 — темп снижения ставки",
+    "Реальный эффект 20-го пакета ЕС на платёжные цепочки в июне–июле",
+    "Банкротства застройщиков после ужесточения резервных требований ЦБ"
+  ],
+  "sources": [
+    { "id": 1, "url": "https://cbr.ru/analytics/bank_sector/obs/", "title": "ЦБ РФ — Обзор банковского сектора" },
+    { "id": 2, "url": "https://www.nbki.ru/press/pressrelises/", "title": "НБКИ — просрочка потребкредитов" },
+    { "id": 3, "url": "https://www.moex.com/n/", "title": "Мосбиржа — дефолты эмитентов" },
+    { "id": 4, "url": "https://cbonds.ru/news/", "title": "Cbonds — корпоративные дефолты" },
+    { "id": 5, "url": "https://www.rbc.ru/finances/", "title": "РБК — 20-й пакет санкций ЕС" },
+    { "id": 6, "url": "https://www.vedomosti.ru/economics/", "title": "Ведомости — отключение GPAgent и Платёжки" },
+    { "id": 7, "url": "https://rosstat.gov.ru/labor_market_employment_salaries", "title": "Росстат — задолженность по зарплате" },
+    { "id": 8, "url": "https://rostrud.gov.ru/rostrud/deyatelnost/", "title": "Роструд — мониторинг задолженностей" }
+  ],
+  "stats": { "steps": 24, "tool_calls": 22, "time_seconds": 412, "cost_usd": 0.38, "model": "openai:gpt-5.2" },
+  "history": [
+    { "run_id": 1, "timestamp": "2026-05-19T12:00:00+03:00", "risk_level": "yellow", "total_score": 26 }
+  ],
+  "criteria_registry": [
+    { "id": "force_majeure_state_event", "name": "Форс-мажорное государственное событие (чёрный лебедь)", "search_query": "site:kremlin.ru OR site:rg.ru военное положение OR расширенный призыв объявлен 2026", "weight": 40, "speed": "fast" },
+    { "id": "sovereign_domestic_debt_event", "name": "Реструктуризация внутреннего долга РФ (ОФЗ)", "search_query": "ОФЗ реструктуризация перенос выплат принудительный обмен 2026", "weight": 24, "speed": "fast" },
+    { "id": "bank_holidays_national", "name": "Экстренная приостановка расчётов / банковские каникулы", "search_query": "банковские каникулы приостановка расчетов распоряжение ЦБ 2026", "weight": 20, "speed": "fast" },
+    { "id": "cb_emergency_rate_hike", "name": "Внеплановое экстренное повышение ключевой ставки ЦБ", "search_query": "ЦБ внеплановое заседание повышение ключевой ставки экстренное 2026", "weight": 15, "speed": "fast" },
+    { "id": "systemic_bank_resolution", "name": "Санация / временная администрация в системно значимом банке", "search_query": "site:cbr.ru временная администрация санация системно значимый банк 2026", "weight": 12, "speed": "fast" },
+    { "id": "deposit_outflow_mass", "name": "Массовый отток вкладов физлиц из банковской системы", "search_query": "вклады физических лиц отток сокращение банки ЦБ статистика 2026", "weight": 12, "speed": "fast" },
+    { "id": "bank_license_revocation_wave", "name": "Волна отзывов банковских лицензий", "search_query": "ЦБ отзыв лицензии банк несколько одновременно 2026", "weight": 9, "speed": "fast" },
+    { "id": "payment_infrastructure_systemic_disruption", "name": "Сбой платёжной инфраструктуры (НСПК / Мир / СБП)", "search_query": "НСПК Мир СБП сбой недоступность платежи 2026", "weight": 9, "speed": "fast" },
+    { "id": "new_fx_controls_severe", "name": "Резкое ужесточение валютного контроля", "search_query": "новые валютные ограничения ужесточение переводы за рубеж запрет 2026", "weight": 9, "speed": "fast" },
+    { "id": "ruble_shock_devaluation", "name": "Шоковая девальвация рубля (>20% за месяц)", "search_query": "рубль девальвация падение курс доллар резкое снижение 2026", "weight": 9, "speed": "fast" },
+    { "id": "corporate_default_wave", "name": "Волна корпоративных дефолтов", "search_query": "корпоративные дефолты реструктуризация облигации кредиты Россия 2026", "weight": 8, "speed": "medium" },
+    { "id": "new_sanctions_trade_finance", "name": "Новые санкции с реальным эффектом на торговые платежи", "search_query": "санкции Россия торговые платежи банки отключение 2026", "weight": 8, "speed": "fast" },
+    { "id": "oil_price_shock_urals", "name": "Шок цен на нефть Urals (<$50/барр.)", "search_query": "нефть Urals цена падение дисконт экспорт 2026", "weight": 8, "speed": "fast" },
+    { "id": "banking_npl_spike", "name": "Резкий рост NPL в банковской системе", "search_query": "банковский сектор NPL просроченная задолженность рост ЦБ 2026", "weight": 8, "speed": "medium" },
+    { "id": "inflation_reacceleration", "name": "Ускорение инфляции / инфляционных ожиданий", "search_query": "инфляция ускорение рост цены ЦБ Росстат 2026", "weight": 7, "speed": "medium" },
+    { "id": "deposit_rate_spread_alarm", "name": "Аномальный рост ставок по вкладам", "search_query": "ставки вклады депозиты аномальный рост банки 2026", "weight": 7, "speed": "fast" },
+    { "id": "budget_emergency_amendments", "name": "Экстренные поправки к бюджету из-за дефицита", "search_query": "бюджет секвестр поправки дефицит Минфин Госдума 2026", "weight": 6, "speed": "medium" },
+    { "id": "cbr_repo_volume_spike", "name": "Резкий рост объёма РЕПО с ЦБ", "search_query": "ЦБ РЕПО операции ликвидность банки объём рост 2026", "weight": 6, "speed": "fast" },
+    { "id": "ofz_yield_curve_inversion_spike", "name": "Резкое углубление инверсии кривой ОФЗ", "search_query": "ОФЗ кривая доходности инверсия спред 2026", "weight": 6, "speed": "medium" },
+    { "id": "personal_bankruptcy_surge", "name": "Резкий рост личных банкротств физлиц", "search_query": "банкротство физических лиц рост статистика Федресурс 2026", "weight": 6, "speed": "slow" },
+    { "id": "rzd_freight_decline", "name": "Снижение погрузки РЖД", "search_query": "РЖД погрузка грузооборот снижение статистика 2026", "weight": 6, "speed": "slow" },
+    { "id": "cash_m0_spike", "name": "Резкий рост наличных в обращении M0", "search_query": "наличные деньги обращение M0 рост ЦБ статистика 2026", "weight": 6, "speed": "fast" },
+    { "id": "household_credit_stress", "name": "Стресс потребительского кредитования", "search_query": "потребительский кредит просрочка NPL рост банки 2026", "weight": 5, "speed": "medium" },
+    { "id": "mortgage_real_estate_stress", "name": "Стресс ипотеки и рынка недвижимости", "search_query": "ипотека просрочка недвижимость застройщики стресс 2026", "weight": 5, "speed": "medium" },
+    { "id": "external_trade_deterioration", "name": "Ухудшение внешнеторговых условий", "search_query": "экспорт импорт торговый баланс Россия ухудшение 2026", "weight": 5, "speed": "slow" },
+    { "id": "interbank_liquidity_stress", "name": "Стресс межбанковской ликвидности (RUONIA)", "search_query": "RUONIA межбанк ликвидность стресс рост ставки 2026", "weight": 5, "speed": "fast" },
+    { "id": "price_regulation_emergency", "name": "Экстренное регулирование цен", "search_query": "регулирование цен заморозка потолок правительство Россия 2026", "weight": 5, "speed": "fast" },
+    { "id": "capital_outflow_acceleration", "name": "Ускорение оттока капитала", "search_query": "отток капитала Россия ЦБ платёжный баланс ускорение 2026", "weight": 5, "speed": "slow" },
+    { "id": "wage_arrears_spike", "name": "Рост задолженности по заработной плате", "search_query": "задолженность зарплата задержка рост Росстат Роструд 2026", "weight": 5, "speed": "slow" },
+    { "id": "commodity_export_ban", "name": "Запрет экспорта ключевых товаров", "search_query": "запрет экспорт зерно металлы нефть газ Россия постановление 2026", "weight": 5, "speed": "fast" },
+    { "id": "critical_infrastructure_attack", "name": "Атака на критическую финансовую инфраструктуру", "search_query": "кибератака финансовая инфраструктура банки биржа Россия 2026", "weight": 5, "speed": "fast" },
+    { "id": "regional_budget_crisis", "name": "Кризис региональных бюджетов", "search_query": "регион бюджет дефицит кризис трансферты Минфин 2026", "weight": 4, "speed": "slow" },
+    { "id": "labor_market_shock", "name": "Шок рынка труда (массовые увольнения)", "search_query": "безработица увольнения рост рынок труда шок Россия 2026", "weight": 4, "speed": "medium" },
+    { "id": "supply_chain_critical_breakdown", "name": "Критический сбой цепочек поставок", "search_query": "цепочки поставок сбой дефицит критический импорт Россия 2026", "weight": 4, "speed": "medium" },
+    { "id": "sovereign_credit_rating_action", "name": "Действие рейтинговых агентств по суверенному рейтингу", "search_query": "суверенный рейтинг Россия снижение АКРА 2026", "weight": 3, "speed": "medium" }
+  ]
+}
   </script>
 </body>
 </html>
