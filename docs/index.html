@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RF Macro Outlook AI — Макро-оценка экономики РФ</title>
+  <meta name="description" content="AI-агент для макро-оценки экономики РФ: негативные/позитивные тенденции и риск кризисного сценария на горизонте 6 месяцев.">
+  <meta name="theme-color" content="#0d1117">
+  <noscript>
+    <style>
+      body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 2rem; }
+      .ns-box { max-width: 640px; margin: 4rem auto; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 2rem; text-align: center; }
+      .ns-box h1 { color: #58a6ff; margin-bottom: 1rem; }
+      .ns-box p { color: #8b949e; line-height: 1.6; }
+      .ns-box a { color: #58a6ff; }
+    </style>
+    <div class="ns-box">
+      <h1>RF Macro Outlook AI</h1>
+      <p>Этот дашборд требует JavaScript для загрузки данных из <code>data.json</code>.</p>
+      <p>Пожалуйста, включите JavaScript в настройках браузера или посетите
+        <a href="https://t.me/money_alert_ai" target="_blank" rel="noopener">Telegram-канал @money_alert_ai</a>
+        для просмотра последнего отчёта.</p>
+      <p>Репозиторий: <a href="https://github.com/kaluginvit-svg/rf-macro-risk-ai" target="_blank" rel="noopener">github.com/kaluginvit-svg/rf-macro-risk-ai</a></p>
+    </div>
+  </noscript>
+  <style>
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1c2128;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --green:     #3fb950;
+      --green-dim: #1a3a22;
+      --yellow:    #d29922;
+      --yellow-dim:#3a2e0a;
+      --red:       #f85149;
+      --red-dim:   #3a1212;
+      --accent:    #58a6ff;
+      --accent-dim:#0d2a4e;
+      --radius:    10px;
+      --radius-sm: 6px;
+      --shadow:    0 4px 24px rgba(0,0,0,.45);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* ─── Header ─── */
+    .header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 56px;
+      background: rgba(13,17,23,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      gap: 1rem;
+    }
+
+    .header-left, .header-right {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      min-width: 180px;
+    }
+    .header-right { justify-content: flex-end; }
+
+    .header-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .header-title span { color: var(--accent); }
+
+    .btn-criteria {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .35rem .8rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: .825rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .btn-criteria:hover {
+      background: var(--surface2);
+      border-color: var(--accent);
+    }
+
+    .github-link {
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      transition: color .15s;
+    }
+    .github-link:hover { color: var(--text); text-decoration: none; }
+    .github-link svg { width: 22px; height: 22px; }
+
+    /* ─── Main Layout ─── */
+    main {
+      padding-top: 56px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+
+    /* ─── Loading / Error ─── */
+    .state-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 56px);
+      gap: 1.25rem;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .state-screen p { color: var(--muted); font-size: .95rem; }
+    .error-icon { font-size: 2.5rem; }
+    .error-title { font-size: 1.2rem; font-weight: 700; color: var(--red); }
+    .error-msg { color: var(--muted); max-width: 480px; }
+
+    /* ─── Hero Section ─── */
+    .hero {
+      text-align: center;
+      padding: 3rem 1rem 2rem;
+    }
+
+    .risk-emoji {
+      font-size: 4rem;
+      line-height: 1;
+      margin-bottom: .5rem;
+      display: block;
+      filter: drop-shadow(0 0 20px var(--glow-color, transparent));
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 12px var(--glow-color, transparent)); }
+      50%       { filter: drop-shadow(0 0 28px var(--glow-color, transparent)); }
+    }
+
+    .risk-label {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+      margin-bottom: .4rem;
+    }
+    .risk-label.green { color: var(--green); }
+    .risk-label.yellow { color: var(--yellow); }
+    .risk-label.red { color: var(--red); }
+
+    .risk-subtitle {
+      color: var(--muted);
+      font-size: .95rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .score-bar-wrap {
+      max-width: 440px;
+      margin: 0 auto 1.25rem;
+    }
+
+    .score-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .8rem;
+      color: var(--muted);
+      margin-bottom: .4rem;
+    }
+    .score-bar-label strong { color: var(--text); font-size: .9rem; }
+
+    .score-bar-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      width: 0%;
+      transition: width 1.2s cubic-bezier(.4,0,.2,1);
+    }
+    .score-bar-fill.green  { background: linear-gradient(90deg, #2ea043, var(--green)); }
+    .score-bar-fill.yellow { background: linear-gradient(90deg, #9a6a00, var(--yellow)); }
+    .score-bar-fill.red    { background: linear-gradient(90deg, #b91c1c, var(--red)); }
+
+    .badges-row {
+      display: flex;
+      justify-content: center;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-bottom: .75rem;
+    }
+
+    .deposit-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .3rem .9rem;
+      border-radius: 99px;
+      font-size: .85rem;
+      font-weight: 600;
+      border: 1px solid;
+    }
+    .deposit-badge.green  { background: var(--green-dim);  border-color: var(--green);  color: var(--green); }
+    .deposit-badge.yellow { background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow); }
+    .deposit-badge.red    { background: var(--red-dim);    border-color: var(--red);    color: var(--red); }
+
+    .updated-at {
+      color: var(--muted);
+      font-size: .78rem;
+      margin-top: .25rem;
+    }
+
+    /* ─── Section Titles ─── */
+    .section {
+      margin: 2.5rem 0;
+    }
+
+    .section-title {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ─── Triggered Criteria Grid ─── */
+    .criteria-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .875rem;
+    }
+
+    @media (max-width: 680px) {
+      .criteria-grid { grid-template-columns: 1fr; }
+    }
+
+    .crit-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left-width: 3px;
+      border-radius: var(--radius);
+      padding: .875rem 1rem;
+      display: flex;
+      gap: .75rem;
+      align-items: flex-start;
+      transition: border-color .15s, background .15s;
+    }
+    .crit-card:hover { background: var(--surface2); }
+
+    .weight-badge {
+      display: inline-block;
+      padding: .2rem .55rem;
+      border-radius: var(--radius-sm);
+      font-size: .75rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: .1rem;
+    }
+    .weight-badge.w-low    { background: var(--green-dim);  color: var(--green);  border: 1px solid var(--green); }
+    .weight-badge.w-mid    { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow); }
+    .weight-badge.w-high   { background: var(--red-dim);    color: var(--red);    border: 1px solid var(--red); }
+
+    .crit-body { flex: 1; min-width: 0; }
+    .crit-name {
+      font-weight: 600;
+      font-size: .875rem;
+      margin-bottom: .25rem;
+      color: var(--text);
+    }
+    .crit-evidence {
+      font-size: .8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* card left border by weight */
+    .crit-card.w-low  { border-left-color: var(--green); }
+    .crit-card.w-mid  { border-left-color: var(--yellow); }
+    .crit-card.w-high { border-left-color: var(--red); }
+
+    .no-triggers {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--green-dim);
+      border: 1px solid var(--green);
+      border-radius: var(--radius);
+      font-weight: 600;
+      color: var(--green);
+      font-size: .95rem;
+    }
+
+    /* ─── Summary / Recommendation ─── */
+    .summary-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .summary-block h3 {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: .6rem;
+    }
+    .summary-block p {
+      font-size: .9rem;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .recommendation-block {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+    }
+    .recommendation-block h3 {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--accent);
+      margin-bottom: .6rem;
+    }
+    .recommendation-block p {
+      font-size: .9rem;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    /* ─── Trends 3-col ─── */
+    .trends-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 760px) {
+      .trends-grid { grid-template-columns: 1fr; }
+    }
+
+    .trend-col {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+    }
+
+    .trend-col-title {
+      font-size: .8rem;
+      font-weight: 700;
+      margin-bottom: .75rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .trend-col-title.positive { color: var(--green); }
+    .trend-col-title.negative { color: var(--red); }
+    .trend-col-title.risks    { color: var(--yellow); }
+
+    .trend-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+    }
+    .trend-list li {
+      font-size: .825rem;
+      color: var(--muted);
+      line-height: 1.5;
+      padding-left: .9rem;
+      position: relative;
+    }
+    .trend-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--border);
+    }
+    .trend-col.positive .trend-list li::before { color: var(--green); }
+    .trend-col.negative .trend-list li::before { color: var(--red); }
+    .trend-col.risks    .trend-list li::before { color: var(--yellow); }
+
+    /* ─── Asset Guidance ─── */
+    .assets-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 680px) {
+      .assets-grid { grid-template-columns: 1fr; }
+    }
+
+    .asset-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.1rem;
+    }
+    .asset-card-title {
+      font-size: .825rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: .5rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .asset-card p {
+      font-size: .825rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ─── Run History ─── */
+    .history-timeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      overflow-x: auto;
+      padding: .5rem 0 .75rem;
+      scrollbar-width: thin;
+    }
+
+    .history-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .3rem;
+      flex-shrink: 0;
+      cursor: default;
+    }
+
+    .history-dot {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .65rem;
+      font-weight: 700;
+      border: 2px solid;
+      transition: transform .15s;
+      position: relative;
+    }
+    .history-dot:hover { transform: scale(1.15); }
+    .history-dot.green  { background: var(--green-dim);  border-color: var(--green);  color: var(--green); }
+    .history-dot.yellow { background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow); }
+    .history-dot.red    { background: var(--red-dim);    border-color: var(--red);    color: var(--red); }
+
+    .history-dot-label {
+      font-size: .65rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .history-connector {
+      flex: 1;
+      min-width: 24px;
+      max-width: 56px;
+      height: 2px;
+      background: var(--border);
+      margin-bottom: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    /* tooltip on history dot */
+    .history-dot[title] { cursor: help; }
+
+    /* ─── Footer ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 3rem;
+      padding: 2rem 1.25rem;
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .footer-col { display: flex; flex-direction: column; gap: .35rem; }
+
+    .footer-tg {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: .9rem;
+    }
+    .footer-tg:hover { text-decoration: underline; }
+
+    .footer-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem .75rem;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    .footer-stat { display: flex; align-items: center; gap: .3rem; }
+
+    .disclaimer {
+      font-size: .75rem;
+      color: var(--muted);
+      font-style: italic;
+      max-width: 340px;
+      opacity: .75;
+    }
+
+    /* ─── Modal ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(1,4,9,.75);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 880px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow);
+      transform: translateY(16px) scale(.98);
+      transition: transform .2s;
+    }
+    .modal-overlay.open .modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+
+    .modal-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .modal-close {
+      width: 30px; height: 30px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, color .15s;
+      flex-shrink: 0;
+    }
+    .modal-close:hover { background: var(--surface2); color: var(--text); }
+
+    .modal-search-row {
+      padding: .75rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+    }
+
+    .modal-search {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: .45rem .9rem;
+      color: var(--text);
+      font-size: .875rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .modal-search:focus { border-color: var(--accent); }
+    .modal-search::placeholder { color: var(--muted); }
+
+    .modal-sort-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .4rem .8rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color .15s, border-color .15s;
+    }
+    .modal-sort-btn:hover, .modal-sort-btn.active { color: var(--accent); border-color: var(--accent); }
+
+    .modal-body {
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .criteria-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .825rem;
+    }
+
+    .criteria-table thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      padding: .65rem 1rem;
+      text-align: left;
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .criteria-table thead th:hover { color: var(--text); }
+    .criteria-table thead th .sort-arrow { margin-left: .25rem; opacity: .5; }
+    .criteria-table thead th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
+
+    .criteria-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+    .criteria-table tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
+    .criteria-table tbody tr:hover { background: var(--surface2); }
+
+    .criteria-table td {
+      padding: .7rem 1rem;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .tbl-weight {
+      font-weight: 700;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .tbl-weight.w-low  { color: var(--green); }
+    .tbl-weight.w-mid  { color: var(--yellow); }
+    .tbl-weight.w-high { color: var(--red); }
+
+    .tbl-speed {
+      text-align: center;
+      font-size: 1rem;
+      white-space: nowrap;
+    }
+
+    .tbl-name {
+      font-weight: 600;
+      color: var(--text);
+      max-width: 260px;
+    }
+
+    .tbl-query {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .72rem;
+      color: var(--muted);
+      max-width: 280px;
+      word-break: break-word;
+    }
+
+    .modal-footer-info {
+      padding: .6rem 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: .75rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .no-results {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    /* ─── Misc utils ─── */
+    .chip {
+      display: inline-block;
+      padding: .15rem .5rem;
+      border-radius: 99px;
+      font-size: .7rem;
+      font-weight: 600;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .flex-center { display: flex; align-items: center; justify-content: center; }
+    .gap-sm { gap: .5rem; }
+    .mt-2 { margin-top: .5rem; }
+
+    /* ─── Responsive tweaks ─── */
+    @media (max-width: 520px) {
+      .header-title { font-size: .875rem; }
+      .risk-label { font-size: 2.4rem; }
+      .risk-emoji { font-size: 3.2rem; }
+      .header-left { min-width: unset; }
+      .header-right { min-width: unset; }
+    }
+
+    /* ─── Content hidden until loaded ─── */
+    #dashboard { display: none; }
+
+    /* ─── Animations ─── */
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fade-in .4s ease both; }
+
+    .stagger-1 { animation-delay: .05s; }
+    .stagger-2 { animation-delay: .1s; }
+    .stagger-3 { animation-delay: .15s; }
+    .stagger-4 { animation-delay: .2s; }
+    .stagger-5 { animation-delay: .25s; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ HEADER ═══ -->
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-criteria" id="btnCriteria" aria-label="Открыть реестр критериев">
+        📋 Критерии (<span id="criteriaCount">…</span>)
+      </button>
+    </div>
+    <div class="flex-center">
+      <span class="header-title">RF Macro <span>Outlook</span> AI</span>
+    </div>
+    <div class="header-right">
+      <a class="github-link" href="https://github.com/kaluginvit-svg/rf-macro-risk-ai" target="_blank" rel="noopener" title="GitHub репозиторий" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- ═══ LOADING STATE ═══ -->
+  <div id="loadingState">
+    <main>
+      <div class="state-screen">
+        <div class="spinner"></div>
+        <p>Загружаем данные...</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══ ERROR STATE ═══ -->
+  <div id="errorState" style="display:none">
+    <main>
+      <div class="state-screen">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">Не удалось загрузить данные</div>
+        <p class="error-msg" id="errorMsg">Файл <code>data.json</code> не найден или содержит ошибку.</p>
+        <p class="error-msg" style="margin-top:.5rem; font-size:.8rem;">
+          Убедитесь, что файл <code>docs/data.json</code> существует.
+          <br>Подробности — в консоли разработчика (F12).
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══ DASHBOARD (hidden until data loaded) ═══ -->
+  <div id="dashboard">
+
+    <!-- ── HERO ── -->
+    <main>
+      <section class="hero fade-in">
+        <span class="risk-emoji" id="heroEmoji">🟡</span>
+        <div class="risk-label" id="heroLabel">СРЕДНИЙ</div>
+        <div class="risk-subtitle">Кризисный сценарий (6м)</div>
+
+        <div class="score-bar-wrap">
+          <div class="score-bar-label">
+            <span>Оценка риска</span>
+            <strong id="scoreText">— / — очков (—%)</strong>
+          </div>
+          <div class="score-bar-track">
+            <div class="score-bar-fill" id="scoreBarFill"></div>
+          </div>
+        </div>
+
+        <div class="badges-row">
+          <span class="deposit-badge" id="depositBadge">Вклады: 🟢 НИЗКИЙ</span>
+        </div>
+        <div class="updated-at" id="updatedAt"></div>
+      </section>
+
+      <!-- ── TRIGGERED CRITERIA ── -->
+      <section class="section fade-in stagger-1">
+        <div class="section-title">Сработавшие критерии</div>
+        <div id="triggeredContainer"></div>
+      </section>
+
+      <!-- ── SUMMARY & RECOMMENDATION ── -->
+      <section class="section fade-in stagger-2">
+        <div class="section-title">Резюме и рекомендация</div>
+        <div class="summary-block">
+          <h3>📝 Резюме</h3>
+          <p id="summaryText"></p>
+        </div>
+        <div style="margin-top:1rem">
+          <div class="recommendation-block">
+            <h3>💡 Рекомендация</h3>
+            <p id="recommendationText"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TRENDS ── -->
+      <section class="section fade-in stagger-3">
+        <div class="section-title">Тенденции и риски</div>
+        <div class="trends-grid">
+          <div class="trend-col positive">
+            <div class="trend-col-title positive">🟢 Позитивные тенденции</div>
+            <ul class="trend-list" id="positiveTrends"></ul>
+          </div>
+          <div class="trend-col negative">
+            <div class="trend-col-title negative">🔴 Негативные тенденции</div>
+            <ul class="trend-list" id="negativeTrends"></ul>
+          </div>
+          <div class="trend-col risks">
+            <div class="trend-col-title risks">⚠️ Риски на 6м</div>
+            <ul class="trend-list" id="risks6m"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ASSET GUIDANCE ── -->
+      <section class="section fade-in stagger-4">
+        <div class="section-title">Рекомендации по активам</div>
+        <div class="assets-grid" id="assetsGrid"></div>
+      </section>
+
+      <!-- ── RUN HISTORY ── -->
+      <section class="section fade-in stagger-5">
+        <div class="section-title">История прогонов</div>
+        <div class="history-timeline" id="historyTimeline"></div>
+      </section>
+    </main>
+
+    <!-- ── FOOTER ── -->
+    <footer>
+      <div class="footer-col">
+        <a class="footer-tg" href="https://t.me/money_alert_ai" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.43 13.67l-2.974-.924c-.647-.204-.66-.647.136-.958l11.57-4.461c.537-.194 1.009.131.732.894z"/></svg>
+          @money_alert_ai
+        </a>
+        <span class="disclaimer">Не является инвестиционной рекомендацией.</span>
+      </div>
+      <div class="footer-col">
+        <div class="footer-stats" id="footerStats"></div>
+      </div>
+      <div class="footer-col">
+        <a href="https://github.com/kaluginvit-svg/rf-macro-risk-ai" target="_blank" rel="noopener" style="color:var(--muted); font-size:.78rem;">
+          github.com/kaluginvit-svg/rf-macro-risk-ai
+        </a>
+        <span style="font-size:.75rem; color:var(--muted)">
+          Based on <a href="https://github.com/Rai220/money_alert_ai" target="_blank" rel="noopener">Rai220/money_alert_ai</a>
+        </span>
+      </div>
+    </footer>
+
+  </div><!-- /#dashboard -->
+
+  <!-- ═══ CRITERIA MODAL ═══ -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-label="Реестр критериев">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h2>📋 Реестр критериев <span class="chip" id="modalCriteriaCount">35</span></h2>
+        <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="modal-search-row">
+        <input
+          class="modal-search"
+          id="criteriaSearch"
+          type="search"
+          placeholder="Поиск по названию или запросу..."
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button class="modal-sort-btn active" id="sortBtn" title="Сортировка по весу">
+          Вес <span id="sortArrow">↓</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <table class="criteria-table" id="criteriaTable">
+          <thead>
+            <tr>
+              <th data-col="weight" class="sorted">Вес <span class="sort-arrow" id="colArrowWeight">↓</span></th>
+              <th data-col="speed">Скорость <span class="sort-arrow" id="colArrowSpeed"></span></th>
+              <th data-col="name">Название <span class="sort-arrow" id="colArrowName"></span></th>
+              <th data-col="query">Поисковый запрос <span class="sort-arrow" id="colArrowQuery"></span></th>
+            </tr>
+          </thead>
+          <tbody id="criteriaTableBody"></tbody>
+        </table>
+        <div class="no-results" id="noResults" style="display:none">Ничего не найдено</div>
+      </div>
+      <div class="modal-footer-info" id="modalFilterInfo">
+        Показано критериев: <strong id="shownCount">0</strong>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    "use strict";
+
+    // ───── Helpers ─────
+    const $ = id => document.getElementById(id);
+    const escHtml = s => String(s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;");
+
+    function riskColor(level) {
+      return level === "green" ? "green" : level === "red" ? "red" : "yellow";
+    }
+    function riskEmoji(level) {
+      return level === "green" ? "🟢" : level === "red" ? "🔴" : "🟡";
+    }
+    function riskLabel(level) {
+      return level === "green" ? "НИЗКИЙ" : level === "red" ? "ВЫСОКИЙ" : "СРЕДНИЙ";
+    }
+    function weightClass(w) {
+      if (w >= 10) return "w-high";
+      if (w >= 6)  return "w-mid";
+      return "w-low";
+    }
+    function speedLabel(s) {
+      if (s === "fast")   return { icon: "⚡", title: "Быстрый" };
+      if (s === "slow")   return { icon: "🐢", title: "Медленный" };
+      return { icon: "📅", title: "Средний" };
+    }
+    function formatDate(iso) {
+      if (!iso) return "";
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString("ru-RU", {
+          day: "numeric", month: "long", year: "numeric",
+          hour: "2-digit", minute: "2-digit", timeZoneName: "short"
+        });
+      } catch(e) { return iso; }
+    }
+    function formatDateShort(iso) {
+      if (!iso) return "";
+      try {
+        const d = new Date(iso);
+        return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit" });
+      } catch(e) { return iso; }
+    }
+    function listItems(arr, elId) {
+      const el = $(elId);
+      if (!el) return;
+      const items = Array.isArray(arr) ? arr : [];
+      if (!items.length) {
+        el.innerHTML = `<li style="color:var(--muted);font-style:italic">Нет данных</li>`;
+        return;
+      }
+      el.innerHTML = items.map(t => {
+        const text = typeof t === "string" ? t.replace(/^•\s*/,"") : String(t);
+        return `<li>${escHtml(text)}</li>`;
+      }).join("");
+    }
+
+    // ───── Asset icons guess ─────
+    function assetIcon(text) {
+      const t = (text || "").toLowerCase();
+      if (/вклад|депозит/i.test(t)) return "💼";
+      if (/валют|доллар|евро|usd|eur|юань|cny/i.test(t)) return "💱";
+      if (/облиг|офз|bond/i.test(t)) return "🏛️";
+      if (/акци|акция|stocks/i.test(t)) return "📈";
+      if (/золот|gold/i.test(t)) return "🥇";
+      if (/недвиж|квартир/i.test(t)) return "🏠";
+      return "💼";
+    }
+
+    // ───── State ─────
+    let criteriaRegistry = [];
+    let sortCol = "weight";
+    let sortAsc = false;
+
+    // ───── Render dashboard ─────
+    function render(data) {
+      const res = data.result || data;  // support both wrapped and flat
+      const level = (res.risk_level || "yellow").toLowerCase();
+      const color = riskColor(level);
+      const score = res.total_score || 0;
+      const maxScore = res.max_score || 330;
+      const pct = maxScore > 0 ? Math.min(100, Math.round(score / maxScore * 1000) / 10) : 0;
+
+      // Hero
+      const heroEmoji = $("heroEmoji");
+      heroEmoji.textContent = riskEmoji(level);
+      heroEmoji.style.setProperty("--glow-color",
+        color === "green" ? "#3fb950" : color === "red" ? "#f85149" : "#d29922");
+
+      const heroLabel = $("heroLabel");
+      heroLabel.textContent = riskLabel(level);
+      heroLabel.className = "risk-label " + color;
+
+      $("scoreText").textContent =
+        `${score} / ${maxScore} очков (${pct}%)`;
+
+      const fill = $("scoreBarFill");
+      fill.className = "score-bar-fill " + color;
+      // Animate after paint
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          fill.style.width = pct + "%";
+        });
+      });
+
+      // Deposit badge
+      const dep = (res.deposit_access_risk || "green").toLowerCase();
+      const depColor = riskColor(dep);
+      const badge = $("depositBadge");
+      badge.textContent = `Вклады: ${riskEmoji(dep)} ${riskLabel(dep)}`;
+      badge.className = "deposit-badge " + depColor;
+
+      // Updated at
+      const updEl = $("updatedAt");
+      const ts = res.updated_at || data.updated_at;
+      if (ts) {
+        updEl.textContent = "Обновлено: " + formatDate(ts);
+      } else {
+        updEl.textContent = "";
+      }
+
+      // Triggered criteria
+      const triggered = res.triggered_criteria || [];
+      const container = $("triggeredContainer");
+      if (!triggered.length) {
+        container.innerHTML = `<div class="no-triggers">✅ Всё спокойно — ни один критерий не сработал</div>`;
+      } else {
+        const grid = document.createElement("div");
+        grid.className = "criteria-grid";
+        triggered.forEach(c => {
+          const wc = weightClass(c.weight || 0);
+          const card = document.createElement("div");
+          card.className = `crit-card ${wc}`;
+          card.innerHTML = `
+            <span class="weight-badge ${wc}">+${c.weight || 0}</span>
+            <div class="crit-body">
+              <div class="crit-name">${escHtml(c.name || c.id || "—")}</div>
+              <div class="crit-evidence">${escHtml(c.evidence || "")}</div>
+            </div>`;
+          grid.appendChild(card);
+        });
+        container.innerHTML = "";
+        container.appendChild(grid);
+      }
+
+      // Summary & Recommendation
+      $("summaryText").textContent = res.summary || "—";
+      $("recommendationText").textContent = res.recommendation || "—";
+
+      // Trends
+      listItems(res.positive_trends, "positiveTrends");
+      listItems(res.negative_trends, "negativeTrends");
+      listItems(res.key_risks_6m,    "risks6m");
+
+      // Asset guidance
+      const assetsGrid = $("assetsGrid");
+      const guidance = res.asset_guidance || [];
+      const assetTitles = ["💼 Вклады", "💱 Валюта", "🏛️ Облигации"];
+      if (guidance.length) {
+        assetsGrid.innerHTML = guidance.slice(0, 6).map((item, i) => {
+          const text = typeof item === "string" ? item.replace(/^•\s*/,"") : String(item);
+          // Try to detect if it has a label prefix like "Вклады: ..."
+          const title = assetTitles[i] || (assetIcon(text) + " Активы");
+          return `
+            <div class="asset-card">
+              <div class="asset-card-title">${title}</div>
+              <p>${escHtml(text)}</p>
+            </div>`;
+        }).join("");
+      } else {
+        assetsGrid.innerHTML = `<p style="color:var(--muted); font-size:.85rem; grid-column:1/-1">Нет данных по активам.</p>`;
+      }
+
+      // History
+      const history = res.history || data.history || [];
+      const timeline = $("historyTimeline");
+      if (history.length) {
+        timeline.innerHTML = history.map((h, idx) => {
+          const hColor = riskColor((h.risk_level || "yellow").toLowerCase());
+          const hEmoji = riskEmoji((h.risk_level || "yellow").toLowerCase());
+          const hDate = formatDateShort(h.timestamp);
+          const connector = idx < history.length - 1
+            ? `<div class="history-connector"></div>` : "";
+          return `
+            <div class="history-item">
+              <div class="history-dot ${hColor}" title="Прогон #${h.run_id} · ${hDate} · Очки: ${h.total_score || 0}">
+                ${h.total_score || 0}
+              </div>
+              <div class="history-dot-label">#${h.run_id} ${hEmoji}</div>
+            </div>
+            ${connector}`;
+        }).join("");
+      } else {
+        timeline.innerHTML = `<span style="color:var(--muted); font-size:.85rem">История прогонов пуста.</span>`;
+      }
+
+      // Footer stats
+      const stats = res.stats || {};
+      const statsEl = $("footerStats");
+      const statItems = [];
+      if (stats.model)        statItems.push(`<span class="footer-stat">🤖 ${escHtml(stats.model)}</span>`);
+      if (stats.cost_usd)     statItems.push(`<span class="footer-stat">💰 $${Number(stats.cost_usd).toFixed(4)}</span>`);
+      if (stats.tool_calls)   statItems.push(`<span class="footer-stat">🔍 ${stats.tool_calls} поисков</span>`);
+      if (stats.time_seconds) statItems.push(`<span class="footer-stat">⏱ ${stats.time_seconds}с</span>`);
+      if (stats.steps)        statItems.push(`<span class="footer-stat">🪜 ${stats.steps} шагов</span>`);
+      const runId = res.run_id || data.run_id;
+      if (runId)              statItems.push(`<span class="footer-stat">🔢 Прогон #${runId}</span>`);
+      statsEl.innerHTML = statItems.join("");
+
+      // Criteria registry for modal
+      criteriaRegistry = res.criteria_registry || data.criteria_registry || [];
+      $("criteriaCount").textContent = criteriaRegistry.length;
+      $("modalCriteriaCount").textContent = criteriaRegistry.length;
+
+      // Show dashboard
+      $("dashboard").style.display = "";
+    }
+
+    // ───── Modal ─────
+    function openModal() {
+      renderModalTable("");
+      const overlay = $("modalOverlay");
+      overlay.classList.add("open");
+      overlay.removeAttribute("aria-hidden");
+      $("criteriaSearch").focus();
+      document.body.style.overflow = "hidden";
+    }
+    function closeModal() {
+      $("modalOverlay").classList.remove("open");
+      $("modalOverlay").setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    function renderModalTable(filter) {
+      const q = (filter || "").toLowerCase().trim();
+      let rows = criteriaRegistry.slice();
+
+      if (q) {
+        rows = rows.filter(c =>
+          (c.name || "").toLowerCase().includes(q) ||
+          (c.search_query || "").toLowerCase().includes(q) ||
+          (c.id || "").toLowerCase().includes(q)
+        );
+      }
+
+      // Sort
+      rows.sort((a, b) => {
+        let av = a[sortCol === "weight" ? "weight" : sortCol === "speed" ? "speed" : sortCol === "name" ? "name" : "search_query"];
+        let bv = b[sortCol === "weight" ? "weight" : sortCol === "speed" ? "speed" : sortCol === "name" ? "name" : "search_query"];
+        if (sortCol === "weight") {
+          av = Number(av) || 0;
+          bv = Number(bv) || 0;
+          return sortAsc ? av - bv : bv - av;
+        }
+        av = String(av || "").toLowerCase();
+        bv = String(bv || "").toLowerCase();
+        if (av < bv) return sortAsc ? -1 : 1;
+        if (av > bv) return sortAsc ? 1 : -1;
+        return 0;
+      });
+
+      const tbody = $("criteriaTableBody");
+      const noRes = $("noResults");
+
+      if (!rows.length) {
+        tbody.innerHTML = "";
+        noRes.style.display = "";
+        $("shownCount").textContent = "0";
+        return;
+      }
+      noRes.style.display = "none";
+
+      tbody.innerHTML = rows.map(c => {
+        const wc = weightClass(c.weight || 0);
+        const sp = speedLabel(c.speed);
+        return `<tr>
+          <td class="tbl-weight ${wc}">${c.weight || 0}</td>
+          <td class="tbl-speed" title="${sp.title}">${sp.icon}</td>
+          <td class="tbl-name">${escHtml(c.name || c.id || "—")}</td>
+          <td class="tbl-query"><code>${escHtml(c.search_query || "—")}</code></td>
+        </tr>`;
+      }).join("");
+
+      $("shownCount").textContent = rows.length;
+
+      // Update sort arrows
+      ["weight","speed","name","query"].forEach(col => {
+        const th = document.querySelector(`[data-col="${col}"]`);
+        if (!th) return;
+        th.classList.toggle("sorted", col === sortCol);
+        const arrow = th.querySelector(".sort-arrow");
+        if (arrow) {
+          if (col === sortCol) {
+            arrow.textContent = sortAsc ? "↑" : "↓";
+          } else {
+            arrow.textContent = "";
+          }
+        }
+      });
+    }
+
+    // ───── Event listeners ─────
+    document.addEventListener("DOMContentLoaded", () => {
+      // Header button
+      $("btnCriteria").addEventListener("click", openModal);
+      $("modalClose").addEventListener("click", closeModal);
+
+      // Click outside modal
+      $("modalOverlay").addEventListener("click", e => {
+        if (e.target === $("modalOverlay")) closeModal();
+      });
+
+      // Keyboard
+      document.addEventListener("keydown", e => {
+        if (e.key === "Escape") closeModal();
+      });
+
+      // Search
+      $("criteriaSearch").addEventListener("input", e => {
+        renderModalTable(e.target.value);
+      });
+
+      // Sort button
+      $("sortBtn").addEventListener("click", () => {
+        if (sortCol === "weight") {
+          sortAsc = !sortAsc;
+        } else {
+          sortCol = "weight";
+          sortAsc = false;
+        }
+        $("sortArrow").textContent = sortAsc ? "↑" : "↓";
+        renderModalTable($("criteriaSearch").value);
+      });
+
+      // Column header clicks for sorting
+      document.querySelectorAll(".criteria-table thead th[data-col]").forEach(th => {
+        th.addEventListener("click", () => {
+          const col = th.dataset.col;
+          if (sortCol === col) {
+            sortAsc = !sortAsc;
+          } else {
+            sortCol = col;
+            sortAsc = col !== "weight"; // weight defaults desc, others asc
+          }
+          $("sortArrow").textContent = (sortCol === "weight") ? (sortAsc ? "↑" : "↓") : "↓";
+          renderModalTable($("criteriaSearch").value);
+        });
+      });
+
+      // ───── Load data ─────
+      fetch("./data.json")
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+          return r.json();
+        })
+        .then(data => {
+          $("loadingState").style.display = "none";
+          render(data);
+        })
+        .catch(err => {
+          console.error("[RF Macro Outlook AI] Failed to load data.json:", err);
+          $("loadingState").style.display = "none";
+          $("errorState").style.display = "";
+          $("errorMsg").textContent = err.message || "Неизвестная ошибка при загрузке data.json";
+        });
+    });
+
+  })();
+  </script>
+</body>
+</html>

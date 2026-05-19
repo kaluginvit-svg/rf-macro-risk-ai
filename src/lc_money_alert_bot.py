@@ -49,6 +49,7 @@ from bot_common import (
     get_last_run_info,
     save_run_result,
     build_history_trend,
+    export_web_report,
 )
 
 load_dotenv()
@@ -857,6 +858,7 @@ async def run_agent(
     }
     save_run_result(run_history, run_id, final_result, stats, criteria_path)
     stats["history_trend"] = build_history_trend(run_history, run_id)
+    export_web_report({"result": final_result}, stats, criteria_data, run_history)
 
     return {
         "result": final_result,

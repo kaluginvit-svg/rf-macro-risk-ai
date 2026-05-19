@@ -644,6 +644,93 @@ def _parse_telegram_posts(raw_html: str) -> list[dict]:
     return posts
 
 
+def export_web_report(
+    result: dict | None,
+    stats: dict,
+    criteria_data: dict,
+    run_history: dict,
+) -> None:
+    """Writes web-ready JSON to EXPORT_WEB_JSON path when that env var is set."""
+    export_path = os.getenv("EXPORT_WEB_JSON")
+    if not export_path:
+        return
+
+    from datetime import timezone
+
+    criteria_by_id = {c["id"]: c for c in criteria_data.get("criteria", [])}
+    final = (result or {}).get("result") or result or {}
+
+    triggered = []
+    for t in final.get("triggered_criteria", []):
+        cid = t.get("id", "")
+        meta = criteria_by_id.get(cid, {})
+        triggered.append({
+            "id": cid,
+            "name": meta.get("name", cid),
+            "evidence": t.get("evidence", ""),
+            "weight": meta.get("weight", 0),
+            "confidence": t.get("confidence"),
+        })
+
+    criteria_registry = [
+        {
+            "id": c["id"],
+            "name": c["name"],
+            "search_query": c.get("search_query", ""),
+            "weight": c.get("weight", 0),
+            "speed": c.get("speed", "medium"),
+        }
+        for c in criteria_data.get("criteria", [])
+    ]
+
+    runs = run_history.get("runs", [])
+    data = {
+        "updated_at": datetime.now(timezone.utc).astimezone().isoformat(),
+        "run_id": stats.get("run_id"),
+        "risk_level": final.get("risk_level", "unknown"),
+        "total_score": final.get("total_score", 0),
+        "max_score": sum(c.get("weight", 0) for c in criteria_data.get("criteria", [])),
+        "thresholds": criteria_data.get("thresholds", {}),
+        "confidence": final.get("confidence"),
+        "deposit_access_risk": final.get("deposit_access_risk", "green"),
+        "triggered_criteria": triggered,
+        "summary": final.get("summary", ""),
+        "recommendation": final.get("recommendation", ""),
+        "positive_trends": final.get("positive_trends", []),
+        "negative_trends": final.get("negative_trends", []),
+        "key_risks_6m": final.get("key_risks_6m", []),
+        "asset_guidance": final.get("asset_guidance", []),
+        "watchlist": final.get("watchlist", []),
+        "sources": final.get("sources", []),
+        "stats": {
+            "steps": stats.get("steps", 0),
+            "tool_calls": stats.get("tool_calls", 0),
+            "time_seconds": stats.get("time_seconds", 0),
+            "cost_usd": stats.get("cost_usd", 0),
+            "model": stats.get("model", ""),
+        },
+        "history": [
+            {
+                "run_id": r["run_id"],
+                "timestamp": r.get("timestamp", ""),
+                "risk_level": r.get("risk_level", "unknown"),
+                "total_score": r.get("total_score", 0),
+            }
+            for r in runs[-10:]
+        ],
+        "criteria_registry": criteria_registry,
+    }
+
+    try:
+        path = Path(export_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"✅ Web report exported → {path}")
+    except Exception as e:
+        print(f"⚠️ Failed to export web report: {e}")
+
+
 SYSTEM_PROMPT = """Ты — аналитик макроэкономических и финансовых рисков России. Твоя задача — по новостному фону и официальным данным оценить, к чему идёт экономика РФ (негативные и позитивные тенденции) и каков риск кризисного сценария на горизонте 6 месяцев.
 
 📅 **Сейчас: {today_date}** | 🔢 **Прогон №{run_id}**
