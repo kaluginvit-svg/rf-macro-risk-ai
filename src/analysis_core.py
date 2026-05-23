@@ -290,6 +290,26 @@ def _parse_telegram_posts(raw_html: str) -> list[dict]:
 # ─────────────────────── Web export ────────────────────────
 
 
+def _update_inline_data(data_path: Path, data: dict) -> None:
+    index_path = data_path.parent / "index.html"
+    if not index_path.exists():
+        return
+    try:
+        import re as _re
+        html = index_path.read_text(encoding="utf-8")
+        new_json = json.dumps(data, ensure_ascii=False, indent=2)
+        html, n = _re.subn(
+            r'(<script id="report-data" type="application/json">).*?(</script>)',
+            lambda m: m.group(1) + "\n" + new_json + "\n  " + m.group(2),
+            html, flags=_re.DOTALL,
+        )
+        if n:
+            index_path.write_text(html, encoding="utf-8")
+            print(f"✅ index.html inline data updated (run_id={data.get('run_id')})")
+    except Exception as e:
+        print(f"⚠️ Failed to update index.html inline data: {e}")
+
+
 def _auto_git_push(path: Path, data: dict) -> None:
     import subprocess
     try:
@@ -301,6 +321,7 @@ def _auto_git_push(path: Path, data: dict) -> None:
             return
         repo_root = r.stdout.strip()
         rel = path.relative_to(repo_root)
+        index_rel = (path.parent / "index.html").relative_to(repo_root)
 
         run_id  = data.get("run_id", "?")
         risk    = data.get("risk_level", "?")
@@ -308,7 +329,7 @@ def _auto_git_push(path: Path, data: dict) -> None:
         ts      = datetime.now().strftime("%Y-%m-%d")
         msg     = f"auto: data.json {ts} (run #{run_id}, {risk}, {score} pts)"
 
-        subprocess.run(["git", "add", str(rel)], cwd=repo_root, check=True, timeout=10)
+        subprocess.run(["git", "add", str(rel), str(index_rel)], cwd=repo_root, check=True, timeout=10)
         commit = subprocess.run(
             ["git", "commit", "-m", msg],
             cwd=repo_root, capture_output=True, text=True, timeout=15,
@@ -412,6 +433,7 @@ def export_web_report(
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         print(f"✅ Web report exported → {path}")
+        _update_inline_data(path, data)
         _auto_git_push(path, data)
     except Exception as e:
         print(f"⚠️ Failed to export web report: {e}")

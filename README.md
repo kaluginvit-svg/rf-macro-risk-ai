@@ -25,7 +25,7 @@ AI-агент для **макро-оценки экономики РФ**: нег
 
 ## 🌐 Demo
 
-**[kaluginvit-svg.github.io/rf-macro-risk-ai](https://kaluginvit-svg.github.io/rf-macro-risk-ai)** — интерактивная страница с последним обзором, реестром критериев и историей прогонов. Обновляется после каждого локального прогона (`docs/data.json` коммитится в репозиторий).
+**[kaluginvit.github.io/rf-macro-risk-ai](https://kaluginvit.github.io/rf-macro-risk-ai)** — интерактивная страница с последним обзором, реестром критериев и историей прогонов. Обновляется после каждого локального прогона (`docs/data.json` коммитится и деплоится автоматически).
 
 ## 🚀 Быстрый старт
 
@@ -39,7 +39,7 @@ AI-агент для **макро-оценки экономики РФ**: нег
 
 ```bash
 # Клонировать репозиторий
-git clone https://github.com/kaluginvit-svg/rf-macro-risk-ai.git
+git clone https://github.com/kaluginvit/rf-macro-risk-ai.git
 cd rf-macro-risk-ai
 
 # Скопировать пример конфигурации и заполнить своими ключами
@@ -85,45 +85,19 @@ uv run python src/lc_money_alert_bot.py --provider gigachat # GigaChat
 
 ⚠️ **Внимание:** Запуск занимает несколько минут и стоит денег (API вызовы LLM + поиск).
 
-### ☁️ Деплой на Modal.com (по расписанию)
+### 📅 Автопубликация по расписанию
 
-Бот может автоматически запускаться каждый день в 9:00 по Москве.
-
-**1. Создать секреты в Modal:**
+Демон публикует отчёт в Telegram-канал каждый день в заданное время без ручного запуска:
 
 ```bash
-# Tavily API ключ
-modal secret create tavily TAVILY_API_KEY=tvly-...
+# В Бот_репортер/.env:
+SCHEDULE_TIME=09:00
+EXPORT_WEB_JSON=.../docs/data.json
 
-# OpenAI
-modal secret create openai OPENAI_API_KEY=sk-...
-
-# Google Gemini (если используете gemini)
-modal secret create google GOOGLE_API_KEY=AIza...
-
-# Telegram секреты
-modal secret create telegram \
-  TELEGRAM_BOT_TOKEN=123456789:ABC... \
-  TELEGRAM_CHANNEL_ID=123456789
+python Бот_репортер/daemon.py
 ```
 
-**2. Задеплоить:**
-
-```bash
-modal deploy src/modal_app.py
-```
-
-**3. Тестовый запуск (с логами):**
-
-```bash
-modal run src/modal_app.py
-```
-
-**4. Посмотреть логи:**
-
-```bash
-modal app logs money-alert-bot
-```
+После каждого прогона `docs/data.json` автоматически коммитится и пушится — GitHub Pages обновляется без дополнительных действий.
 
 ## 📊 Пример вывода
 
@@ -153,9 +127,8 @@ modal app logs money-alert-bot
 │   └── criteria_deposit_freeze_small.json # Архив: сокращённый депозитный набор
 ├── runs_history.json                 # История прогонов (создаётся автоматически, не в git)
 ├── src/
-│   ├── lc_money_alert_bot.py   # Основной агент (LangChain)
-│   ├── bot_common.py           # Утилиты: критерии, история, Telegram, промпт
-│   └── modal_app.py            # Запуск по расписанию на Modal
+│   ├── lc_money_alert_bot.py   # Основной агент (LangChain) — только анализ
+│   └── analysis_core.py        # Утилиты: критерии, история, экспорт, промпт
 └── AGENTS.md             # Подробная документация
 ```
 
@@ -163,8 +136,6 @@ modal app logs money-alert-bot
 
 ```
 python-dotenv>=1.2.1
-python-telegram-bot>=21.0
-modal>=0.67.0
 langchain>=1.2.10
 langchain-openai>=0.3.0
 langchain-google-genai>=2.1.0
