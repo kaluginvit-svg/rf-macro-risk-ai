@@ -77,6 +77,9 @@ _search_time_range: str | None = None
 # Заполняется в WebSearch, обнуляется в начале каждого run_agent().
 _url_dates: dict[str, str] = {}
 
+# Множество уже возвращённых URL за текущий прогон — дубли статей отсекаются.
+_seen_urls: set[str] = set()
+
 
 def _compute_time_range(last_ts: str | None) -> str:
     """Возвращает Tavily time_range исходя из даты предыдущего прогона."""
@@ -169,6 +172,11 @@ def WebSearch(query: str) -> str:
             content = r.get("content", "") or r.get("snippet", "") or ""
             url = r.get("url", "")
             date = r.get("published_date") or r.get("date") or ""
+
+            if url:
+                if url in _seen_urls:
+                    continue
+                _seen_urls.add(url)
 
             if url and date:
                 _url_dates[url] = date
@@ -500,9 +508,10 @@ async def run_agent(
     log(f"🔢 Прогон №{run_id}" + (f" | предыдущий: {last_ts}" if last_ts else " | первый прогон"))
 
     # ── Временной фильтр поиска — только свежие источники ──
-    global _search_time_range, _url_dates
+    global _search_time_range, _url_dates, _seen_urls
     _search_time_range = _compute_time_range(last_ts)
     _url_dates = {}
+    _seen_urls = set()
     log(f"🗓️ Фильтр поиска: не старше «{_search_time_range}» (предыдущий прогон: {last_ts or 'нет'})")
 
     # ── Настройки ──
