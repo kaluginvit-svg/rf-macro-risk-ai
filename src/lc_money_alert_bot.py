@@ -73,6 +73,10 @@ _tavily = TavilySearch(max_results=_env_int("TAVILY_MAX_RESULTS", 6))
 # Значения: "day" | "week" | "month" | "year" | None (без ограничения)
 _search_time_range: str | None = None
 
+# Реестр дат источников: url → published_date (строка ISO или "dd.mm.yyyy")
+# Заполняется в WebSearch, обнуляется в начале каждого run_agent().
+_url_dates: dict[str, str] = {}
+
 
 def _compute_time_range(last_ts: str | None) -> str:
     """Возвращает Tavily time_range исходя из даты предыдущего прогона."""
@@ -165,6 +169,9 @@ def WebSearch(query: str) -> str:
             content = r.get("content", "") or r.get("snippet", "") or ""
             url = r.get("url", "")
             date = r.get("published_date") or r.get("date") or ""
+
+            if url and date:
+                _url_dates[url] = date
 
             content = content.strip()
             if content:
@@ -493,8 +500,9 @@ async def run_agent(
     log(f"🔢 Прогон №{run_id}" + (f" | предыдущий: {last_ts}" if last_ts else " | первый прогон"))
 
     # ── Временной фильтр поиска — только свежие источники ──
-    global _search_time_range
+    global _search_time_range, _url_dates
     _search_time_range = _compute_time_range(last_ts)
+    _url_dates = {}
     log(f"🗓️ Фильтр поиска: не старше «{_search_time_range}» (предыдущий прогон: {last_ts or 'нет'})")
 
     # ── Настройки ──
@@ -886,6 +894,13 @@ async def run_agent(
         "model": f"{provider}:{model_display}",
         "run_id": run_id,
     }
+    # Обогащаем sources датами из реестра поиска
+    if final_result and _url_dates:
+        for src in final_result.get("sources", []):
+            url = src.get("url", "")
+            if url and url in _url_dates and "date" not in src:
+                src["date"] = _url_dates[url]
+
     save_run_result(run_history, run_id, final_result, stats, criteria_path)
     stats["history_trend"] = build_history_trend(run_history, run_id)
     export_web_report({"result": final_result}, stats, criteria_data, run_history)
