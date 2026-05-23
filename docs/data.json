@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-05-23T14:41:15.394228+05:00",
-  "run_id": 3,
+  "updated_at": "2026-05-23T14:53:28.108483+05:00",
+  "run_id": 4,
   "risk_level": "green",
   "total_score": 0,
   "max_score": 330,
@@ -50,7 +50,7 @@
   "stats": {
     "steps": 0,
     "tool_calls": 0,
-    "time_seconds": 0.002003,
+    "time_seconds": 0.002002,
     "cost_usd": 0.0,
     "model": "mock"
   },
@@ -70,6 +70,12 @@
     {
       "run_id": 3,
       "timestamp": "2026-05-23T14:41:15.393231+05:00",
+      "risk_level": "green",
+      "total_score": 0
+    },
+    {
+      "run_id": 4,
+      "timestamp": "2026-05-23T14:53:28.106486+05:00",
       "risk_level": "green",
       "total_score": 0
     }
