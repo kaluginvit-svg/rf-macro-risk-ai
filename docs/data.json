@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-05-23T19:06:11.443062+05:00",
-  "run_id": 1,
+  "updated_at": "2026-05-23T19:07:18.780363+05:00",
+  "run_id": 2,
   "risk_level": "unknown",
   "total_score": 0,
   "max_score": 330,
@@ -42,7 +42,7 @@
   "stats": {
     "steps": 0,
     "tool_calls": 0,
-    "time_seconds": 12.655294,
+    "time_seconds": 12.514268,
     "cost_usd": 0.0,
     "model": "openai:gpt-4o-mini"
   },
@@ -50,6 +50,12 @@
     {
       "run_id": 1,
       "timestamp": "2026-05-23T19:06:11.440388+05:00",
+      "risk_level": "unknown",
+      "total_score": 0
+    },
+    {
+      "run_id": 2,
+      "timestamp": "2026-05-23T19:07:18.778776+05:00",
       "risk_level": "unknown",
       "total_score": 0
     }
