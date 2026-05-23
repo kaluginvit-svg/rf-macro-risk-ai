@@ -2,7 +2,7 @@
 Общие утилиты анализа: критерии, история прогонов, архив канала, промпт, экспорт.
 
 Не зависит от Telegram и LLM-провайдера.
-Telegram-специфичная часть (форматирование, отправка) — в Бот_репортер/telegram_publisher.py.
+Публикация в Telegram выполняется внешним Бот_репортер.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 from dotenv import load_dotenv
 
@@ -19,6 +20,28 @@ load_dotenv()
 
 LOGS_DIR = Path(__file__).parent / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
+
+_TRACKING_PARAMS = {
+    "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+    "yclid", "ysclid", "from", "fbclid", "gclid",
+}
+
+
+def _canonical_url(url: str) -> str:
+    try:
+        p = urlparse(url.strip())
+        scheme = (p.scheme or "https").lower()
+        netloc = p.netloc.lower()
+        if netloc.startswith("www."):
+            netloc = netloc[4:]
+        query = urlencode(
+            [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k.lower() not in _TRACKING_PARAMS],
+            doseq=True,
+        )
+        path = p.path.rstrip("/") or "/"
+        return urlunparse((scheme, netloc, path, "", query, ""))
+    except Exception:
+        return url
 
 
 class Logger:
@@ -138,21 +161,150 @@ def format_criteria_for_prompt(criteria_data: dict) -> str:
     thresholds = criteria_data.get("thresholds", {})
     g = thresholds.get("green", {})
     y = thresholds.get("yellow", {})
+    o = thresholds.get("orange", {})
     r = thresholds.get("red", {})
     header = (
         f"### ПОРОГИ RISK_LEVEL (использовать при выставлении risk_level и deposit_access_risk)\n"
-        f"🟢 green (НИЗКИЙ): total_score {g.get('min', 0)}–{g.get('max', 11)}\n"
-        f"🟡 yellow (СРЕДНИЙ): total_score {y.get('min', 12)}–{y.get('max', 24)}\n"
-        f"🔴 red (ВЫСОКИЙ): total_score {r.get('min', 25)}+\n\n"
+        f"🟢 green (НИЗКИЙ): total_score {g.get('min', 0)}–{g.get('max', 19)}\n"
+        f"🟡 yellow (СРЕДНИЙ): total_score {y.get('min', 20)}–{y.get('max', 39)}\n"
+        f"🟠 orange (СУЩЕСТВЕННЫЙ): total_score {o.get('min', 40)}–{o.get('max', 69)}\n"
+        f"🔴 red (ВЫСОКИЙ): total_score {r.get('min', 70)}+\n"
+        f"⚫ black (АВАРИЙНЫЙ): автоматически при срабатывании shock-критерия с флагом triggers_black\n\n"
         f"### КРИТЕРИИ ДЛЯ ПРОВЕРКИ ({len(criteria_data['criteria'])} шт.)\n"
     )
     speed_label = {"fast": "⚡БЫСТРЫЙ", "medium": "📅СРЕДНИЙ", "slow": "🐢МЕДЛЕННЫЙ"}
+    role_label = {"shock": "🚨ШОКОВЫЙ", "leading": "📡РАННИЙ", "context": "📊КОНТЕКСТ"}
     body = "\n".join(
-        f"### {c['id']} (вес: {c['weight']}) [{speed_label.get(c.get('speed', 'medium'), '📅СРЕДНИЙ')}]\n"
-        f"**{c['name']}**\n{c['description']}\nПоисковый запрос: `{c['search_query']}`\n"
+        f"### {c['id']} (вес: {c['weight']}) [{speed_label.get(c.get('speed', 'medium'), '📅СРЕДНИЙ')}] [{role_label.get(c.get('role', 'leading'), '📡РАННИЙ')}]\n"
+        f"**{c['name']}**\n{c['description']}\n"
+        f"Роль: `{c.get('role', 'leading')}`\n"
+        f"Уровни срабатывания: watch={c.get('severity_levels', {}).get('watch', '')}, triggered={c.get('severity_levels', {}).get('triggered', '')}\n"
+        f"Группа источников: `{c.get('source_group', 'news_event')}`\n"
+        f"Требует official: `{(c.get('source_policy') or {}).get('requires_official', False)}`; "
+        f"мин. независимых источников: `{(c.get('source_policy') or {}).get('min_independent_sources', 1)}`\n"
+        f"Поисковый запрос: `{c['search_query']}`\n"
         for c in criteria_data["criteria"]
     )
     return header + body
+
+
+def validate_final_result(
+    final_result: dict | None,
+    criteria_data: dict,
+    allowed_source_urls: set[str] | None = None,
+    ledger: dict | None = None,
+) -> dict | None:
+    """Normalizes model JSON: checked ids, triggered ids, score, and risk level.
+
+    When ledger is provided, uses scoring.py to compute crisis score with
+    severity/novelty multipliers, deposit_access_score, and records criterion
+    events into the ledger for cooldown tracking.
+    """
+    if not isinstance(final_result, dict):
+        return final_result
+
+    criteria = criteria_data.get("criteria", [])
+    criteria_by_id = {c.get("id"): c for c in criteria}
+    all_ids = [c.get("id") for c in criteria if c.get("id")]
+
+    normalized_triggered = []
+    seen_triggered: set[str] = set()
+    for item in final_result.get("triggered_criteria", []) or []:
+        if not isinstance(item, dict):
+            continue
+        cid = item.get("id")
+        if cid not in criteria_by_id or cid in seen_triggered:
+            continue
+        seen_triggered.add(cid)
+        normalized_triggered.append(item)
+
+    thresholds = criteria_data.get("thresholds", {})
+
+    # ── Build criteria_status first (needed for scoring) ──
+    triggered_ids = {t["id"] for t in normalized_triggered}
+    existing_status = {
+        item.get("id"): item
+        for item in (final_result.get("criteria_status") or [])
+        if isinstance(item, dict) and item.get("id") in criteria_by_id
+    }
+    statuses = []
+    for cid in all_ids:
+        item = dict(existing_status.get(cid) or {})
+        item["id"] = cid
+        if cid in triggered_ids:
+            item.setdefault("status", "triggered")
+            item.setdefault("delta", "worse")
+            item.setdefault("evidence_strength", "high")
+        else:
+            item.setdefault("status", "quiet")
+            item.setdefault("delta", "flat")
+            item.setdefault("evidence_strength", "none")
+        item.setdefault("fresh_signals_count", 0)
+        item.setdefault("new_sources_count", 0)
+        statuses.append(item)
+
+    # ── Compute scores using scoring engine ──
+    try:
+        import scoring as _scoring
+        criteria_status_by_id = {s["id"]: s.get("status", "quiet") for s in statuses}
+        _ledger = ledger or {}
+        total_score = _scoring.compute_crisis_score(statuses, criteria_by_id, _ledger)
+        deposit_access_score = _scoring.compute_deposit_access_score(criteria_status_by_id)
+        risk_level = _scoring.risk_level_from_score(
+            total_score, thresholds, criteria_status_by_id, criteria_by_id
+        )
+        deposit_access_risk = _scoring.deposit_access_risk_from_score(deposit_access_score)
+        if ledger is not None:
+            _scoring.record_criterion_events(ledger, statuses, criteria_by_id)
+    except ImportError:
+        # Fallback: simple sum without multipliers (backward compat when scoring not available)
+        total_score = sum(criteria_by_id[t["id"]].get("weight", 0) for t in normalized_triggered)
+        deposit_access_score = 0
+        deposit_access_risk = None
+        risk_level = "green"
+        for level in ("red", "orange", "yellow", "green"):
+            cfg = thresholds.get(level, {})
+            min_score = cfg.get("min", 0)
+            max_score = cfg.get("max", 999)
+            if min_score <= total_score <= max_score:
+                risk_level = level
+                break
+
+    final_result["checked_criteria"] = all_ids
+    final_result["triggered_criteria"] = normalized_triggered
+    final_result["total_score"] = total_score
+    final_result["deposit_access_score"] = deposit_access_score
+    final_result["risk_level"] = risk_level
+    if deposit_access_risk is not None:
+        final_result["deposit_access_risk"] = deposit_access_risk
+
+    seen_sources: set[str] = set()
+    normalized_sources = []
+    for src in final_result.get("sources", []) or []:
+        if not isinstance(src, dict):
+            continue
+        url = src.get("url", "")
+        if not url:
+            continue
+        canonical = _canonical_url(url)
+        if allowed_source_urls is not None and canonical not in allowed_source_urls:
+            continue
+        if canonical in seen_sources:
+            continue
+        seen_sources.add(canonical)
+        item = dict(src)
+        item["url"] = canonical
+        item["id"] = item.get("id") or (len(normalized_sources) + 1)
+        normalized_sources.append(item)
+    final_result["sources"] = normalized_sources
+
+    final_result["criteria_status"] = statuses
+
+    if "pulse_score" not in final_result:
+        final_result["pulse_score"] = min(100, total_score)
+    if "pulse_direction" not in final_result:
+        final_result["pulse_direction"] = "worse" if total_score else "flat"
+    return final_result
 
 
 # ─────────────────────── Run history ────────────────────────
@@ -210,7 +362,7 @@ def build_history_trend(history: dict, current_run_id: int, max_items: int = 5) 
     runs = history.get("runs", [])
     if not runs:
         return ""
-    emoji_map = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
+    emoji_map = {"green": "🟢", "yellow": "🟡", "orange": "🟠", "red": "🔴", "black": "⚫"}
     items = [
         f"#{r['run_id']}{emoji_map.get(r.get('risk_level', ''), '❓')}{r.get('total_score', '?')}"
         for r in runs[-max_items:]
@@ -313,9 +465,10 @@ def _update_inline_data(data_path: Path, data: dict) -> None:
 def _auto_git_push(path: Path, data: dict) -> None:
     import subprocess
     try:
+        path = path.resolve()
         r = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            cwd=str(path.parent), capture_output=True, text=True, timeout=10,
+            cwd=str(path.parent), capture_output=True, text=True, encoding="utf-8", timeout=10,
         )
         if r.returncode != 0:
             return
@@ -332,16 +485,16 @@ def _auto_git_push(path: Path, data: dict) -> None:
         subprocess.run(["git", "add", str(rel), str(index_rel)], cwd=repo_root, check=True, timeout=10)
         commit = subprocess.run(
             ["git", "commit", "-m", msg],
-            cwd=repo_root, capture_output=True, text=True, timeout=15,
+            cwd=repo_root, capture_output=True, text=True, encoding="utf-8", timeout=15,
         )
         if commit.returncode != 0:
             if "nothing to commit" in commit.stdout + commit.stderr:
-                print("ℹ️ Git: нечего коммитить (data.json не изменился)")
+                print("Git: nothing to commit (data.json unchanged)")
                 return
-            print(f"⚠️ Git commit failed: {commit.stderr.strip()}")
+            print(f"Git commit failed: {commit.stderr.strip()}")
             return
         push = subprocess.run(
-            ["git", "push"], cwd=repo_root, capture_output=True, text=True, timeout=30,
+            ["git", "push"], cwd=repo_root, capture_output=True, text=True, encoding="utf-8", timeout=30,
         )
         if push.returncode == 0:
             print(f"✅ Git push: {msg}")
@@ -349,6 +502,36 @@ def _auto_git_push(path: Path, data: dict) -> None:
             print(f"⚠️ Git push failed: {push.stderr.strip()}")
     except Exception as e:
         print(f"⚠️ Git auto-push error: {e}")
+
+
+def _call_reporter(data_path: Path) -> None:
+    import subprocess
+    reporter_dir = os.getenv("BOT_REPORTER_DIR", "")
+    if not reporter_dir:
+        return
+    script = Path(reporter_dir) / "run.py"
+    if not script.exists():
+        print(f"⚠️ Reporter script not found: {script}")
+        return
+    try:
+        env = os.environ.copy()
+        env["PYTHONUTF8"] = "1"
+        env["EXPORT_WEB_JSON"] = str(data_path.resolve())
+        proc = subprocess.run(
+            ["python", str(script), "--from-file", str(data_path.resolve())],
+            cwd=str(reporter_dir),
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+        )
+        if proc.returncode == 0:
+            print(f"✅ Reporter: {proc.stdout.strip()}")
+        else:
+            print(f"⚠️ Reporter failed (exit {proc.returncode}):\n{proc.stderr.strip()}")
+    except Exception as e:
+        print(f"⚠️ Reporter call error: {e}")
 
 
 def export_web_report(
@@ -399,7 +582,12 @@ def export_web_report(
         "thresholds": criteria_data.get("thresholds", {}),
         "confidence": final.get("confidence"),
         "deposit_access_risk": final.get("deposit_access_risk", "green"),
+        "deposit_access_score": final.get("deposit_access_score", 0),
+        "pulse_score": final.get("pulse_score", 0),
+        "pulse_direction": final.get("pulse_direction", "flat"),
+        "pulse_summary": final.get("pulse_summary", ""),
         "triggered_criteria": triggered,
+        "criteria_status": final.get("criteria_status", []),
         "summary": final.get("summary", ""),
         "recommendation": final.get("recommendation", ""),
         "positive_trends": final.get("positive_trends", []),
@@ -435,6 +623,7 @@ def export_web_report(
         print(f"✅ Web report exported → {path}")
         _update_inline_data(path, data)
         _auto_git_push(path, data)
+        _call_reporter(path)
     except Exception as e:
         print(f"⚠️ Failed to export web report: {e}")
 
@@ -468,8 +657,15 @@ SYSTEM_PROMPT = """Ты — аналитик макроэкономически�
 **Правило:** Если лимит исчерпан — прекращай поиски и выдавай финальный JSON!
 
 ## ТВОИ ИНСТРУМЕНТЫ
+- SearchCriterion: предпочтительный поиск по `criterion_id`; автоматически применяет `search_query`, окно свежести, source_policy и research ledger
 - WebSearch: поиск актуальных новостей в интернете
 - WebFetch: загрузка содержимого страницы по URL
+
+## 🧹 ФИЛЬТРАЦИЯ ИСТОЧНИКОВ ДО ТЕБЯ
+
+SearchCriterion и WebSearch уже отбрасывают старые, недатированные неофициальные и повторно использованные источники по локальному research ledger.
+Если инструмент вернул "Свежих уникальных результатов не найдено", это означает: по запросу нет нового сигнала в допустимом окне, а не что тема никогда не существовала.
+НЕ восстанавливай старые факты по памяти и НЕ считай критерий сработавшим без свежего источника из текущей выдачи.
 
 ## 🚨 ШАГ 0: ЗАГРУЗКА АРХИВА (САМЫЙ ПЕРВЫЙ ШАГ!)
 
@@ -519,18 +715,19 @@ WebFetch: https://t.me/s/money_alert_ai
 1. **ШАГ 0 — АРХИВ:** Первым делом загрузи https://t.me/s/money_alert_ai и выпиши темы последних постов
 2. **ШАГ 1 — ПЛАН:** Составь план группировки критериев
 3. **ШАГ 2 — ПОИСКИ:** Делай поиски по плану
-4. **⚠️ ПРОВЕРЯЙ ДАТЫ И ВРЕМЯ!** В поиске часто попадаются старые и будущие новости:
+4. **ПОИСК ПО КРИТЕРИЯМ:** для проверки конкретного критерия используй `SearchCriterion(criterion_id)`. `WebSearch` используй только для уточняющих запросов, если `SearchCriterion` дал неполную картину.
+5. **⚠️ ПРОВЕРЯЙ ДАТЫ И ВРЕМЯ!** В поиске часто попадаются старые и будущие новости:
    - Для трендов релевантны материалы за **последние 30 дней**, но приоритет — **последние 7-14 дней**
    - ОБЯЗАТЕЛЬНО смотри дату (и время, если важно)
    - Если событие назначено на ПОЗЖЕ текущего времени — оно ЕЩЁ НЕ ПРОИЗОШЛО, не включай!
    - Игнорируй: фейки, прогнозы без источников, анонсы будущих событий (как факт)
-5. **Оценивай честно**: при сомнениях — критерий НЕ сработал
-6. **ПЕРЕД JSON** — сверь positive_trends/negative_trends/key_risks_6m с архивом, убедись что темы НОВЫЕ
-7. **Финализацию (JSON) выдавай только когда реально проверил все критерии.**
+6. **Оценивай честно**: при сомнениях — критерий НЕ сработал
+7. **ПЕРЕД JSON** — сверь positive_trends/negative_trends/key_risks_6m с архивом, убедись что темы НОВЫЕ
+8. **Финализацию (JSON) выдавай только когда реально проверил все критерии.**
    - В `checked_criteria` должны быть перечислены **все** `id` из списка критериев.
    - Если ты не уверен, что проверил какой-то критерий — продолжай WebSearch, пока не будешь уверен.
    - Если по критерию нет подтверждений — он всё равно считается проверенным (просто не попадает в triggered).
-8. **После {search_limit} поисков** — СТОП! Выдай финальный JSON
+9. **После {search_limit} поисков** — СТОП! Выдай финальный JSON
 
 ## ⚙️ ОГРАНИЧЕНИЕ НА ИНСТРУМЕНТЫ (КРИТИЧНО ДЛЯ КОНТЕКСТА)
 
@@ -600,9 +797,15 @@ WebFetch: https://t.me/s/money_alert_ai
     {{"id": "criterion_id", "evidence": "что именно произошло, до 120 символов [1]", "confidence": 0.9}}
   ],
   "total_score": <сумма весов сработавших критериев>,
-  "risk_level": "green/yellow/red",
+  "risk_level": "green/yellow/orange/red/black",
   "confidence": "high/medium/low",
-  "deposit_access_risk": "green/yellow/red",
+  "deposit_access_risk": "green/yellow/red/black",
+  "pulse_score": 0,
+  "pulse_direction": "better/flat/worse",
+  "pulse_summary": "кратко: что меняется по свежим сигналам",
+  "criteria_status": [
+    {{"id": "criterion_id", "status": "quiet/watch/warming_up/triggered/cooling_down", "delta": "better/flat/worse", "fresh_signals_count": 0, "new_sources_count": 0, "evidence_strength": "none/low/medium/high"}}
+  ],
   "summary": "1-2 предложения, МАКС 220 символов",
   "recommendation": "1 предложение, МАКС 170 символов",
   "asset_guidance": [
