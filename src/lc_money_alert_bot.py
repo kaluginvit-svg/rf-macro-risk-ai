@@ -69,6 +69,31 @@ def _env_int(name: str, default: int) -> int:
 # Важно: держим выдачу короткой, иначе раздуваем контекст.
 _tavily = TavilySearch(max_results=_env_int("TAVILY_MAX_RESULTS", 6))
 
+# Временной фильтр поиска — устанавливается в run_agent() по дате предыдущего прогона.
+# Значения: "day" | "week" | "month" | "year" | None (без ограничения)
+_search_time_range: str | None = None
+
+
+def _compute_time_range(last_ts: str | None) -> str:
+    """Возвращает Tavily time_range исходя из даты предыдущего прогона."""
+    from datetime import timezone
+    if not last_ts:
+        return "month"
+    try:
+        prev = datetime.fromisoformat(last_ts)
+        if prev.tzinfo is None:
+            prev = prev.replace(tzinfo=timezone.utc)
+        days = (datetime.now(timezone.utc) - prev).days
+        if days <= 1:
+            return "day"
+        if days <= 7:
+            return "week"
+        if days <= 31:
+            return "month"
+        return "year"
+    except Exception:
+        return "month"
+
 
 def _truncate_text(text: str, max_chars: int) -> str:
     if not text:
@@ -119,7 +144,10 @@ def WebSearch(query: str) -> str:
         per_item_max = _env_int("WEBSEARCH_PER_ITEM_MAX_CHARS", 280)
         total_max = _env_int("WEBSEARCH_MAX_CHARS", 4_000)
 
-        raw = _tavily.invoke({"query": query})
+        invoke_params: dict = {"query": query}
+        if _search_time_range:
+            invoke_params["time_range"] = _search_time_range
+        raw = _tavily.invoke(invoke_params)
         # Tavily возвращает dict с ключом "results"
         if isinstance(raw, dict):
             results = raw.get("results", [])
@@ -463,6 +491,11 @@ async def run_agent(
     run_history = load_run_history()
     run_id, last_ts, last_level, last_score = get_last_run_info(run_history)
     log(f"🔢 Прогон №{run_id}" + (f" | предыдущий: {last_ts}" if last_ts else " | первый прогон"))
+
+    # ── Временной фильтр поиска — только свежие источники ──
+    global _search_time_range
+    _search_time_range = _compute_time_range(last_ts)
+    log(f"🗓️ Фильтр поиска: не старше «{_search_time_range}» (предыдущий прогон: {last_ts or 'нет'})")
 
     # ── Настройки ──
     search_limit = 50
