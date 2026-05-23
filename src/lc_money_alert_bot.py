@@ -35,14 +35,11 @@ from langgraph.checkpoint.memory import InMemorySaver
 # Добавляем src/ в path для импорта общих утилит
 sys.path.insert(0, str(Path(__file__).parent))
 
-from bot_common import (
+from analysis_core import (
     Logger,
     load_criteria,
     format_criteria_for_prompt,
     fetch_channel_archive,
-    format_telegram_report,
-    send_telegram_report,
-    notify_admin,
     _extract_first_json_object,
     SYSTEM_PROMPT,
     load_run_history,
@@ -900,9 +897,10 @@ def _log_text_preview(log, text: str, step_count: int):
 
 
 async def main():
-    """Точка входа."""
+    """Точка входа — только анализ, без публикации в Telegram.
+    Для публикации используй Бот_репортер/run.py."""
     parser = argparse.ArgumentParser(
-        description="Агент макро-рисков РФ (LangChain)"
+        description="Агент макро-рисков РФ (LangChain) — анализ без публикации"
     )
     parser.add_argument(
         "--provider",
@@ -912,64 +910,41 @@ async def main():
     )
     args = parser.parse_args()
 
-    provider_labels = {"gigachat": "GigaChat", "openai": "OpenAI", "gemini": "Gemini", "anthropic": "Anthropic"}
-    provider_label = provider_labels.get(args.provider, args.provider)
+    criteria_file = os.getenv("CRITERIA_FILE", "criteria.json")
 
     with Logger() as logger:
         logger.log(f"📁 Лог: {logger.log_file}")
-
-        await notify_admin(
-            f"🚀 Начата генерация отчёта (LangChain + {provider_label})..."
-        )
-
-        criteria_file = os.getenv("CRITERIA_FILE", "criteria.json")
         logger.log(f"📄 Файл критериев: {criteria_file}")
 
         try:
-            result = await run_agent(
-                criteria_file, logger, provider=args.provider
-            )
+            result = await run_agent(criteria_file, logger, provider=args.provider)
         except Exception as e:
             error_detail = (
                 logger.last_assistant_text.strip()
                 if logger.last_assistant_text
                 else str(e)
             )
-            error_msg = f"❌ Агент упал с ошибкой:\n\n{error_detail}"
-            logger.log(error_msg)
-            await notify_admin(error_msg)
+            logger.log(f"❌ Агент упал: {error_detail}")
             return None
 
-        logger.log("")
-        report = format_telegram_report(result, result["stats"])
-
-        if result and result.get("result"):
-            score = result["result"].get("total_score", 0)
-            risk_level = result["result"].get("risk_level", "unknown")
-            stats = result["stats"]
-            risk_map = {
-                "green": ("🟢", "НИЗКИЙ"),
-                "yellow": ("🟡", "СРЕДНИЙ"),
-                "red": ("🔴", "ВЫСОКИЙ"),
-            }
-            risk_emoji, risk_label = risk_map.get(risk_level, ("❓", "НЕИЗВЕСТНО"))
-
-            if score > 0:
-                logger.log(
-                    f"⚠️ Обнаружен риск (очки: {score}) — отправка админу для проверки"
-                )
-                await notify_admin(report, parse_mode="HTML")
-            else:
-                logger.log("📤 Нулевой риск — публикация в канал...")
-                await send_telegram_report(report)
-                await notify_admin(
-                    f"✅ Пост опубликован (LangChain + {provider_label})\n"
-                    f"Риск: {risk_emoji} {risk_label}, очки: {score}\n"
-                    f"Время: {stats['time_seconds']:.0f}с, "
-                    f"поисков: {stats['tool_calls']}"
-                )
-
         logger.log(f"📁 Лог сохранён: {logger.log_file}")
+
+        bot_dir = os.getenv("BOT_REPORTER_DIR")
+        if bot_dir:
+            bot_script = Path(bot_dir) / "run.py"
+            if bot_script.exists():
+                logger.log("📤 Запускаю автопубликацию в Telegram...")
+                import subprocess
+                subprocess.run(
+                    [sys.executable, str(bot_script), "--from-file"],
+                    cwd=bot_dir,
+                    check=False,
+                )
+            else:
+                logger.log(f"⚠️  BOT_REPORTER_DIR задан, но run.py не найден: {bot_script}")
+        else:
+            logger.log("ℹ️  BOT_REPORTER_DIR не задан — публикация пропущена")
+
         return result
 
 

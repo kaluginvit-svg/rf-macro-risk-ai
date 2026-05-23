@@ -1,13 +1,11 @@
 [project]
-name = "cc-news-analyzer"
+name = "money-alert-ai"
 version = "0.1.0"
-description = "Economic stability monitoring agent"
+description = "Economic stability monitoring agent — analysis engine"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "python-dotenv>=1.2.1",
-    "python-telegram-bot>=21.0",
-    "modal>=0.67.0",
     "langchain>=1.2.10",
     "langchain-gigachat-lc1>=0.4.0b4",
     "langchain-anthropic>=0.3.0",

@@ -1,13 +1,12 @@
 """
-Общие утилиты бота: критерии, Telegram, формат отчёта, архив канала, промпт.
+Общие утилиты анализа: критерии, история прогонов, архив канала, промпт, экспорт.
 
-Важно: этот модуль не зависит от конкретного LLM-провайдера.
+Не зависит от Telegram и LLM-провайдера.
+Telegram-специфичная часть (форматирование, отправка) — в Бот_репортер/telegram_publisher.py.
 """
 
 from __future__ import annotations
 
-import asyncio
-import html
 import json
 import os
 import re
@@ -15,11 +14,9 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-from telegram import Bot
 
 load_dotenv()
 
-# Папка для логов
 LOGS_DIR = Path(__file__).parent / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 
@@ -31,7 +28,7 @@ class Logger:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_file = LOGS_DIR / f"run_{timestamp}.log"
         self._file = open(self.log_file, "w", encoding="utf-8")
-        self.last_assistant_text = ""  # Для диагностики ошибок/финализации
+        self.last_assistant_text = ""
 
     def log(self, message: str, to_console: bool = True):
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -73,14 +70,10 @@ def _safe_preview(value: object, limit: int = 400) -> str:
 
 
 def _extract_first_json_object(text: str) -> dict | None:
-    """
-    Пытается извлечь первый корректный JSON-объект из произвольного текста.
-    Поддерживает блоки ```json ... ``` и "голый" JSON.
-    """
+    """Извлекает первый корректный JSON-объект из текста."""
     if not text:
         return None
 
-    # 1) fenced ```json ... ```
     if "```json" in text:
         idx = 0
         while True:
@@ -100,7 +93,6 @@ def _extract_first_json_object(text: str) -> dict | None:
                 pass
             idx = end + 3
 
-    # 2) best-effort: first balanced {...} (simple state machine, учитывает строки)
     in_str = False
     escape = False
     depth = 0
@@ -114,11 +106,9 @@ def _extract_first_json_object(text: str) -> dict | None:
             elif ch == '"':
                 in_str = False
             continue
-
         if ch == '"':
             in_str = True
             continue
-
         if ch == "{":
             if depth == 0:
                 start_pos = i
@@ -127,7 +117,7 @@ def _extract_first_json_object(text: str) -> dict | None:
             if depth > 0:
                 depth -= 1
                 if depth == 0 and start_pos is not None:
-                    candidate = text[start_pos : i + 1].strip()
+                    candidate = text[start_pos: i + 1].strip()
                     try:
                         parsed = json.loads(candidate)
                         if isinstance(parsed, dict):
@@ -140,13 +130,11 @@ def _extract_first_json_object(text: str) -> dict | None:
 
 
 def load_criteria(path: str = "criteria.json") -> dict:
-    """Загружает критерии из JSON файла."""
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def format_criteria_for_prompt(criteria_data: dict) -> str:
-    """Форматирует критерии для промпта агенту."""
     thresholds = criteria_data.get("thresholds", {})
     g = thresholds.get("green", {})
     y = thresholds.get("yellow", {})
@@ -174,7 +162,6 @@ RUNS_HISTORY_FILE = Path(os.getenv("RUNS_HISTORY_FILE", str(_default_history_pat
 
 
 def load_run_history() -> dict:
-    """Загружает историю прогонов из файла."""
     if RUNS_HISTORY_FILE.exists():
         try:
             with open(RUNS_HISTORY_FILE, encoding="utf-8") as f:
@@ -185,7 +172,6 @@ def load_run_history() -> dict:
 
 
 def get_last_run_info(history: dict) -> tuple[int, str | None, str | None, int | None]:
-    """Возвращает (next_run_id, last_timestamp_iso, last_risk_level, last_score)."""
     runs = history.get("runs", [])
     if not runs:
         return 1, None, None, None
@@ -200,7 +186,6 @@ def save_run_result(
     stats: dict,
     criteria_file: str,
 ) -> None:
-    """Сохраняет результат прогона в историю."""
     from datetime import timezone
 
     entry = {
@@ -222,359 +207,28 @@ def save_run_result(
 
 
 def build_history_trend(history: dict, current_run_id: int, max_items: int = 5) -> str:
-    """Строит строку с трендом последних прогонов для Telegram-отчёта."""
     runs = history.get("runs", [])
     if not runs:
         return ""
     emoji_map = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
     items = [
-        f"#{r['run_id']}{emoji_map.get(r.get('risk_level',''), '❓')}{r.get('total_score', '?')}"
+        f"#{r['run_id']}{emoji_map.get(r.get('risk_level', ''), '❓')}{r.get('total_score', '?')}"
         for r in runs[-max_items:]
     ]
     return " → ".join(items)
 
 
-# ─────────────────────────────────────────────────────────────
-
-TELEGRAM_MSG_LIMIT = 4096
-
-
-def _sanitize_truncated_html(text: str) -> str:
-    """Remove incomplete HTML tags and close unclosed <a> tags after truncation."""
-    last_lt = text.rfind("<")
-    if last_lt != -1 and ">" not in text[last_lt:]:
-        text = text[:last_lt].rstrip()
-
-    open_count = len(re.findall(r"<a[\s>]", text, re.IGNORECASE))
-    close_count = len(re.findall(r"</a>", text, re.IGNORECASE))
-    text += "</a>" * max(0, open_count - close_count)
-
-    return text
-
-
-def _truncate_field(text: str, max_chars: int) -> str:
-    """Обрезает строку до max_chars, сохраняя ссылки [N] на конце если возможно."""
-    if not text or len(text) <= max_chars:
-        return text
-    ref_match = re.search(r"\s*(\[\d+\](?:\[\d+\])*)\s*$", text)
-    if ref_match and ref_match.start() < max_chars - 5:
-        refs = ref_match.group(1)
-        return text[: max_chars - len(refs) - 1].rstrip() + "…" + refs
-    return text[: max_chars - 1] + "…"
-
-
-def format_telegram_report(result: dict, stats: dict) -> str:
-    """Форматирует отчёт для отправки в Telegram (HTML-формат с кликабельными ссылками).
-
-    Гарантирует, что итоговое сообщение ≤ TELEGRAM_MSG_LIMIT (4096).
-    При превышении подрезает блок ``<blockquote expandable>`` со сработавшими
-    критериями — он и так свёрнут для читателя.
-    """
-    final_result = result.get("result")
-
-    # Маппинг [N] → URL из поля sources
-    sources_map: dict[int, str] = {}
-    if final_result:
-        for src in final_result.get("sources", []):
-            src_id = src.get("id")
-            src_url = src.get("url", "")
-            if src_id is not None and src_url:
-                sources_map[int(src_id)] = src_url
-
-    def _linkify(text: str) -> str:
-        """HTML-экранирует текст и заменяет [N] на кликабельные ссылки."""
-        escaped = html.escape(str(text))
-        if sources_map:
-            def _repl(m):
-                n = int(m.group(1))
-                url = sources_map.get(n)
-                if url:
-                    return f'<a href="{html.escape(url)}">[{n}]</a>'
-                return m.group(0)
-
-            escaped = re.sub(r"\[(\d+)\]", _repl, escaped)
-        return escaped
-
-    risk_map = {
-        "green": ("🟢", "НИЗКИЙ"),
-        "yellow": ("🟡", "СРЕДНИЙ"),
-        "red": ("🔴", "ВЫСОКИЙ"),
-    }
-
-    if final_result:
-        dep = final_result.get("deposit_access_risk", "green")
-        dep_emoji, dep_label = risk_map.get(dep, ("❓", "НЕИЗВЕСТНО"))
-        lines = [f"{dep_emoji} Вклады: {dep_label} | Макро-обзор РФ", ""]
-    else:
-        lines = ["🤖 Макро-обзор РФ (горизонт 6 месяцев)", ""]
-
-    if final_result:
-        risk_level = final_result.get("risk_level", "unknown")
-        emoji, label = risk_map.get(risk_level, ("❓", "НЕИЗВЕСТНО"))
-
-        dep = final_result.get("deposit_access_risk")
-        if dep:
-            dep_emoji, dep_label = risk_map.get(dep, ("❓", "НЕИЗВЕСТНО"))
-            lines.append(f"Риск доступа к вкладам (1–3м): {dep_emoji} {dep_label}")
-        lines.append(f"Риск кризисного сценария (6м): {emoji} {label}")
-        lines.append(f"Очки: {final_result.get('total_score', '?')}")
-        conf = final_result.get("confidence")
-        if conf:
-            lines.append(f"Уверенность: {html.escape(str(conf))}")
-        lines.append("")
-
-        triggered = final_result.get("triggered_criteria", [])
-        # Placeholder for the blockquote — will be filled / trimmed later
-        _BQ_PLACEHOLDER = "%%TRIGGERED_BLOCKQUOTE%%"
-        if triggered:
-            lines.append("⚠️ Сработавшие критерии:")
-            bq_items: list[str] = []
-            for t in triggered:
-                crit_id = html.escape(str(t.get("id", "?")))
-                evidence = _truncate_field(t.get("evidence", "") or "", 130)
-                bq_items.append(f"• {crit_id}: {_linkify(evidence)}")
-            lines.append(_BQ_PLACEHOLDER)
-            lines.append("")
-        else:
-            bq_items = []
-            lines.append("✅ Сработавших критериев нет")
-
-        summary = _truncate_field(final_result.get("summary", "Нет данных"), 230)
-        recommendation = _truncate_field(final_result.get("recommendation", "Нет данных"), 180)
-        lines.append(f"📝 Резюме: {_linkify(summary)}")
-        lines.append(f"💡 Рекомендация: {_linkify(recommendation)}")
-
-        asset_guidance = final_result.get("asset_guidance", []) or []
-        if asset_guidance:
-            lines.append("")
-            lines.append("💼 Активы:")
-            for item in asset_guidance[:3]:
-                text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
-
-        positive = final_result.get("positive_trends", []) or []
-        negative = final_result.get("negative_trends", []) or []
-        risks_6m = final_result.get("key_risks_6m", []) or []
-        watchlist = final_result.get("watchlist", []) or []
-
-        if positive:
-            lines.append("")
-            lines.append("🟢 Позитив:")
-            for item in positive[:1]:
-                text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
-
-        if negative:
-            lines.append("")
-            lines.append("🔴 Негатив:")
-            for item in negative[:1]:
-                text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
-
-        if risks_6m:
-            lines.append("")
-            lines.append("⚠️ Риски на 6м:")
-            for item in risks_6m[:2]:
-                text = item.lstrip("•").strip() if isinstance(item, str) else str(item)
-                lines.append(f"  • {_linkify(_truncate_field(text, 140))}")
-
-    else:
-        bq_items = []
-        _BQ_PLACEHOLDER = "%%TRIGGERED_BLOCKQUOTE%%"
-        lines.append("⚠️ Не удалось получить результат от агента")
-
-    model = stats.get("model")
-    cost_line = f"💰 Стоимость: ${stats['cost_usd']:.4f}"
-    if model:
-        cost_line += f" | 🤖 Модель: {html.escape(str(model))}"
-
-    history_trend = stats.get("history_trend", "")
-    run_id = stats.get("run_id")
-
-    searches = stats.get("tool_calls", 0)
-    thoroughness = " (тщательный прогон)" if searches >= 15 else ""
-
-    footer_lines = ["", "-" * 30]
-    if run_id:
-        run_line = f"🔢 Прогон #{run_id}"
-        if history_trend:
-            run_line += f" | 📈 {history_trend}"
-        footer_lines.append(run_line)
-    footer_lines.extend([
-        f"⏱️ {stats['time_seconds']:.0f}с | 📝 Шагов: {stats['steps']} | 🔍 Поисков: {searches}{thoroughness}",
-        cost_line,
-        "",
-        "Не является инвестиционной рекомендацией.",
-    ])
-    lines.extend(footer_lines)
-
-    # ── Подгоняем под лимит Telegram, подрезая blockquote ──
-    report = "\n".join(lines)
-
-    if _BQ_PLACEHOLDER not in report or not bq_items:
-        # Нет блока с критериями — просто убираем плейсхолдер
-        return report.replace(_BQ_PLACEHOLDER, "")
-
-    bq_wrap_len = len("<blockquote expandable>") + len("</blockquote>")
-    shell_len = len(report) - len(_BQ_PLACEHOLDER) + bq_wrap_len
-
-    available = TELEGRAM_MSG_LIMIT - shell_len - 10  # запас 10 символов
-    if available < 0:
-        available = 0
-
-    # Набираем столько пунктов, сколько влезет
-    fitted: list[str] = []
-    used = 0
-    for item in bq_items:
-        # +1 за символ '\n' между пунктами
-        cost = len(item) + (1 if fitted else 0)
-        if used + cost <= available:
-            fitted.append(item)
-            used += cost
-        else:
-            # Пытаемся добавить обрезанный пункт
-            remaining = available - used - (1 if fitted else 0)
-            if remaining > 30:
-                fitted.append(
-                    _sanitize_truncated_html(item[: remaining - 1]) + "…"
-                )
-            break
-
-    if fitted:
-        bq_html = f"<blockquote expandable>{chr(10).join(fitted)}</blockquote>"
-    else:
-        bq_html = ""
-
-    return report.replace(_BQ_PLACEHOLDER, bq_html)
-
-
-def _split_message(text: str, limit: int = TELEGRAM_MSG_LIMIT) -> list[str]:
-    """Разбивает длинное сообщение на части, не превышающие limit символов."""
-    if len(text) <= limit:
-        return [text]
-
-    parts: list[str] = []
-    while text:
-        if len(text) <= limit:
-            parts.append(text)
-            break
-
-        # Ищем последний перенос строки в пределах лимита
-        cut = text.rfind("\n", 0, limit)
-        if cut <= 0:
-            cut = limit
-
-        parts.append(text[:cut])
-        text = text[cut:].lstrip("\n")
-
-    return parts
-
-
-async def _send_message_parts(
-    bot: Bot,
-    chat_id: str,
-    text: str,
-    *,
-    parse_mode: str | None = None,
-) -> None:
-    """Отправляет сообщение, при необходимости разбивая на части."""
-    parts = _split_message(text)
-    for part in parts:
-        try:
-            await bot.send_message(
-                chat_id=chat_id,
-                text=part,
-                parse_mode=parse_mode,
-                disable_web_page_preview=True,
-            )
-        except Exception as exc:
-            if parse_mode and "parse entities" in str(exc).lower():
-                plain = re.sub(r"<[^>]+>", "", part)
-                await bot.send_message(
-                    chat_id=chat_id,
-                    text=plain,
-                    disable_web_page_preview=True,
-                )
-            else:
-                raise
-
-
-async def send_telegram_report(report: str) -> bool:
-    """Отправляет отчёт в Telegram канал."""
-    if _env_flag("DISABLE_TELEGRAM", default=False):
-        print("ℹ️ Telegram отключён (DISABLE_TELEGRAM=1)")
-        return False
-
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHANNEL_ID")
-
-    if not token or not chat_id:
-        print(
-            f"⚠️ Telegram не настроен (token: {'есть' if token else 'нет'}, chat_id: {chat_id or 'нет'})"
-        )
-        return False
-
-    try:
-        bot = Bot(token=token)
-        await _send_message_parts(bot, chat_id, report, parse_mode="HTML")
-        print(f"✅ Отчёт отправлен в Telegram (chat_id: {chat_id})")
-        return True
-    except asyncio.CancelledError:
-        print("⚠️ Отправка в Telegram отменена (CancelledError)")
-        return False
-    except Exception as e:
-        print(f"❌ Ошибка отправки в Telegram: {e}")
-        return False
-
-
-async def notify_admin(message: str, *, parse_mode: str | None = None) -> bool:
-    """Отправляет уведомление администратору."""
-    if _env_flag("DISABLE_TELEGRAM", default=False):
-        print("ℹ️ Telegram отключён (DISABLE_TELEGRAM=1)")
-        return False
-
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    admin_chat_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID")
-
-    if not token or not admin_chat_id:
-        print(
-            f"⚠️ Админ-чат не настроен (admin_chat_id: {admin_chat_id or 'нет'})"
-        )
-        return False
-
-    try:
-        bot = Bot(token=token)
-        await _send_message_parts(bot, admin_chat_id, message, parse_mode=parse_mode)
-        print(f"✅ Уведомление отправлено админу (chat_id: {admin_chat_id})")
-        return True
-    except asyncio.CancelledError:
-        print("⚠️ Уведомление админу отменено (CancelledError)")
-        return False
-    except Exception as e:
-        print(f"❌ Ошибка отправки уведомления админу: {e}")
-        return False
+# ─────────────────────── Channel archive ────────────────────────
 
 
 def fetch_channel_archive(
     channel_url: str = "https://t.me/s/money_alert_ai",
     max_posts: int = 20,
 ) -> tuple[str, int]:
-    """
-    Загружает публичную страницу Telegram-канала и извлекает чистый текст постов.
-
-    Парсит HTML страницы ``t.me/s/<channel>`` — публичный виджет Telegram,
-    возвращающий последние ~20 сообщений без авторизации.
-
-    Returns:
-        (текст_постов, количество_постов).
-        При ошибке загрузки/парсинга — (сообщение_об_ошибке, 0).
-    """
     import httpx as _httpx
 
     try:
-        with _httpx.Client(
-            follow_redirects=True, timeout=30.0, verify=False
-        ) as client:
+        with _httpx.Client(follow_redirects=True, timeout=30.0, verify=False) as client:
             resp = client.get(
                 channel_url,
                 headers={
@@ -600,19 +254,11 @@ def fetch_channel_archive(
 
 
 def _parse_telegram_posts(raw_html: str) -> list[dict]:
-    """
-    Извлекает посты (текст + дата) из HTML страницы ``t.me/s/<channel>``.
-
-    Использует regex + stdlib ``html.unescape`` — без внешних зависимостей.
-    """
     from html import unescape as _unescape
     from datetime import datetime as _dt
 
     posts: list[dict] = []
-
-    blocks = re.split(
-        r'(?=<div[^>]*class="[^"]*tgme_widget_message_wrap)', raw_html
-    )
+    blocks = re.split(r'(?=<div[^>]*class="[^"]*tgme_widget_message_wrap)', raw_html)
 
     for block in blocks:
         text_m = re.search(
@@ -622,14 +268,12 @@ def _parse_telegram_posts(raw_html: str) -> list[dict]:
         )
         if not text_m:
             continue
-
         raw = text_m.group(1)
         text = re.sub(r"<br\s*/?>", "\n", raw)
         text = re.sub(r"<[^>]+>", "", text)
         text = _unescape(text).strip()
         if not text:
             continue
-
         date_str = ""
         date_m = re.search(r'<time[^>]*datetime="([^"]+)"', block)
         if date_m:
@@ -638,10 +282,12 @@ def _parse_telegram_posts(raw_html: str) -> list[dict]:
                 date_str = dt.strftime("%d.%m.%Y %H:%M")
             except Exception:
                 date_str = date_m.group(1)
-
         posts.append({"text": text, "date": date_str})
 
     return posts
+
+
+# ─────────────────────── Web export ────────────────────────
 
 
 def export_web_report(
@@ -650,7 +296,6 @@ def export_web_report(
     criteria_data: dict,
     run_history: dict,
 ) -> None:
-    """Writes web-ready JSON to EXPORT_WEB_JSON path when that env var is set."""
     export_path = os.getenv("EXPORT_WEB_JSON")
     if not export_path:
         return
@@ -731,6 +376,8 @@ def export_web_report(
         print(f"⚠️ Failed to export web report: {e}")
 
 
+# ─────────────────────── System prompt ────────────────────────
+
 SYSTEM_PROMPT = """Ты — аналитик макроэкономических и финансовых рисков России. Твоя задача — по новостному фону и официальным данным оценить, к чему идёт экономика РФ (негативные и позитивные тенденции) и каков риск кризисного сценария на горизонте 6 месяцев.
 
 📅 **Сейчас: {today_date}** | 🔢 **Прогон №{run_id}**
@@ -802,7 +449,7 @@ WebFetch: https://t.me/s/money_alert_ai
    - предпочитай официальные данные/регуляторов/статведомств; иначе ≥2 независимых источника
 3) Риски ложных срабатываний:
    - перепечатки/старые новости, будущие события, заявления без цифр, единичные кейсы без масштаба
-4) Если в группе нет надёжных данных — заранее пометь её как “скорее НЕ сработало” и ищи подтверждение, а не подгоняй вывод.
+4) Если в группе нет надёжных данных — заранее пометь её как "скорее НЕ сработало" и ищи подтверждение, а не подгоняй вывод.
 ```
 
 ## ПРАВИЛА РАБОТЫ
@@ -875,13 +522,11 @@ WebFetch: https://t.me/s/money_alert_ai
 
 ### 🚫 ФИЛЬТРАЦИЯ ИСТОЧНИКОВ (КРИТИЧНО!)
 
-В финальный JSON (поле `sources` и ссылки [N] в текстовых полях) **включай ТОЛЬКО** ссылки на ресурсы в доменной зоне **.ru** (например: cbr.ru, rbc.ru, kommersant.ru, tass.ru, ria.ru, interfax.ru, vedomosti.ru, banki.ru, minfin.gov.ru и т.д.).
+В финальный JSON (поле `sources` и ссылки [N] в текстовых полях) **включай ТОЛЬКО** ссылки на ресурсы в доменной зоне **.ru**.
 
 **НЕ включай** в `sources` и не ссылайся [N] на:
 - Ресурсы вне зоны .ru (bloomberg.com, reuters.com, ft.com, bbc.com и т.д.)
-- СМИ, признанные иноагентами по законодательству РФ (meduza.io, novayagazeta.eu, theins.ru, mediazona.io, dozhd.tv/tvrain.tv, holod.media, istories.media, thebell.io, zona.media, currenttime.tv, svoboda.org, rferl.org и др.)
-
-Ты МОЖЕШЬ использовать эти ресурсы как ИСТОЧНИК ИНФОРМАЦИИ при поиске и анализе, но в итоговый отчёт (JSON) их URL попадать не должны. Если факт подтверждён только таким источником — перепроверь через .ru-ресурс или укажи факт без ссылки.
+- СМИ, признанные иноагентами по законодательству РФ
 
 ## ФОРМАТ ИТОГА
 
@@ -933,21 +578,13 @@ WebFetch: https://t.me/s/money_alert_ai
 - Выведи `deposit_access_risk` (green/yellow/red) — риск ухудшения доступа к вкладам/платежам на горизонте 1–3 месяца
 - Заполни `asset_guidance` (3 пункта): вклады/ликвидность/диверсификация, валютные и операционные риски, недвижимость/риски отрасли
 - НЕ давай категоричных приказов "покупай/продавай". Используй: "имеет смысл рассмотреть", "если ваша цель — снизить риск...", "можно подумать о..."
-- Если считаешь, что "лучшее действие — ничего не делать" — так и напиши ("не паниковать/без экстренных действий"), но с одним конкретным чеклист‑пунктом (например: держать вклады в пределах АСВ, резерв ликвидности на расходы 2–4 недели).
 
 ### Контекст: топ-10 банков и логика "too big to fail"
 
-При оценке `deposit_access_risk` и рекомендаций по вкладам учитывай:
-
-- **Топ-10 банков РФ (Сбер, ВТБ, Газпромбанк, Россельхозбанк, Альфа, Т-Банк, МКБ, ПСБ и др.) де-факто являются "too big to fail"**: государство исторически всегда вливало капитал до наступления банкротства, не допуская потерь вкладчиков сверх АСВ даже в кризисы 2008, 2014–2015, 2022 гг.
-- **Это политическая практика, не юридическая гарантия**: в экстремальном сценарии (жёсткий бюджетный кризис + внешний шок одновременно) риск не нулевой.
-- **Градация надёжности** при оценке рисков:
-  - Банки с гос. участием >50% (Сбер, ВТБ, РСХБ, ПСБ, ГПБ) — наиболее защищены политически
-  - Крупные частные (Альфа, Т-Банк) — выше риск, но всё ещё системно значимые (ЦБ контролирует)
-  - Остальные вне топ-10 — применяй стандартную логику АСВ
-- **Лимит АСВ:** 1,4 млн руб. на вкладчика на банк. При крупных суммах имеет смысл рассмотреть распределение по нескольким банкам с гос. участием.
-- **Рост просрочки (потребкредиты, застройщики) давит на прибыльность банков**, но не означает немедленной угрозы для вкладчиков — капитал топ-банков пока абсорбирует убытки.
-- Повышай `deposit_access_risk` до yellow/red только при срабатывании критериев `systemic_bank_resolution`, `bank_holidays_national`, `payment_infrastructure_systemic_disruption` или `interbank_liquidity_stress` — именно они сигнализируют о реальной угрозе доступу к деньгам.
+При оценке `deposit_access_risk`:
+- **Топ-10 банков РФ (Сбер, ВТБ, Газпромбанк, Россельхозбанк, Альфа, Т-Банк, МКБ, ПСБ и др.) де-факто являются "too big to fail"**
+- **Лимит АСВ:** 1,4 млн руб. на вкладчика на банк
+- Повышай `deposit_access_risk` до yellow/red только при срабатывании критериев `systemic_bank_resolution`, `bank_holidays_national`, `payment_infrastructure_systemic_disruption` или `interbank_liquidity_stress`
 
 ## КРИТЕРИИ ДЛЯ ПРОВЕРКИ
 
@@ -956,4 +593,3 @@ WebFetch: https://t.me/s/money_alert_ai
 ---
 Начни с ПЛАНИРОВАНИЯ, затем выполняй поиски. Лимит: {search_limit}.
 """
-

@@ -1,3 +1,7 @@
+# Telethon session (содержит токен пользовательской сессии — не коммитить)
+tg_session.session
+tg_session.session-journal
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
