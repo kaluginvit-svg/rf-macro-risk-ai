@@ -38,6 +38,8 @@
       --green-dim: #1a3a22;
       --yellow:    #d29922;
       --yellow-dim:#3a2e0a;
+      --orange:    #e3811c;
+      --orange-dim:#3d2200;
       --red:       #f85149;
       --red-dim:   #3a1212;
       --accent:    #58a6ff;
@@ -192,6 +194,7 @@
     }
     .risk-label.green { color: var(--green); }
     .risk-label.yellow { color: var(--yellow); }
+    .risk-label.orange { color: var(--orange); }
     .risk-label.red { color: var(--red); }
 
     .risk-subtitle {
@@ -229,6 +232,7 @@
     }
     .score-bar-fill.green  { background: linear-gradient(90deg, #2ea043, var(--green)); }
     .score-bar-fill.yellow { background: linear-gradient(90deg, #9a6a00, var(--yellow)); }
+    .score-bar-fill.orange { background: linear-gradient(90deg, #a85200, var(--orange)); }
     .score-bar-fill.red    { background: linear-gradient(90deg, #b91c1c, var(--red)); }
 
     .badges-row {
@@ -251,6 +255,7 @@
     }
     .deposit-badge.green  { background: var(--green-dim);  border-color: var(--green);  color: var(--green); }
     .deposit-badge.yellow { background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow); }
+    .deposit-badge.orange { background: var(--orange-dim); border-color: var(--orange); color: var(--orange); }
     .deposit-badge.red    { background: var(--red-dim);    border-color: var(--red);    color: var(--red); }
 
     .updated-at {
@@ -505,6 +510,7 @@
     .history-dot:hover { transform: scale(1.15); }
     .history-dot.green  { background: var(--green-dim);  border-color: var(--green);  color: var(--green); }
     .history-dot.yellow { background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow); }
+    .history-dot.orange { background: var(--orange-dim); border-color: var(--orange); color: var(--orange); }
     .history-dot.red    { background: var(--red-dim);    border-color: var(--red);    color: var(--red); }
 
     .history-dot-label {
@@ -899,18 +905,12 @@
         <div id="triggeredContainer"></div>
       </section>
 
-      <!-- ── SUMMARY & RECOMMENDATION ── -->
+      <!-- ── SUMMARY ── -->
       <section class="section fade-in stagger-2">
-        <div class="section-title">Резюме и рекомендация</div>
+        <div class="section-title">Резюме</div>
         <div class="summary-block">
           <h3>📝 Резюме</h3>
           <p id="summaryText"></p>
-        </div>
-        <div style="margin-top:1rem">
-          <div class="recommendation-block">
-            <h3>💡 Рекомендация</h3>
-            <p id="recommendationText"></p>
-          </div>
         </div>
       </section>
 
@@ -931,12 +931,6 @@
             <ul class="trend-list" id="risks6m"></ul>
           </div>
         </div>
-      </section>
-
-      <!-- ── ASSET GUIDANCE ── -->
-      <section class="section fade-in stagger-4">
-        <div class="section-title">Рекомендации по активам</div>
-        <div class="assets-grid" id="assetsGrid"></div>
       </section>
 
       <!-- ── RUN HISTORY ── -->
@@ -1021,13 +1015,27 @@
       .replace(/"/g,"&quot;");
 
     function riskColor(level) {
-      return level === "green" ? "green" : level === "red" ? "red" : "yellow";
+      if (level === "green")   return "green";
+      if (level === "orange")  return "orange";
+      if (level === "red")     return "red";
+      if (level === "black")   return "red";
+      return "yellow";
     }
     function riskEmoji(level) {
-      return level === "green" ? "🟢" : level === "red" ? "🔴" : "🟡";
+      if (level === "green")   return "🟢";
+      if (level === "orange")  return "🟠";
+      if (level === "red")     return "🔴";
+      if (level === "black")   return "⚫";
+      if (level === "unknown") return "❓";
+      return "🟡";
     }
     function riskLabel(level) {
-      return level === "green" ? "НИЗКИЙ" : level === "red" ? "ВЫСОКИЙ" : "СРЕДНИЙ";
+      if (level === "green")   return "НИЗКИЙ";
+      if (level === "orange")  return "СУЩЕСТВЕННЫЙ";
+      if (level === "red")     return "ВЫСОКИЙ";
+      if (level === "black")   return "АВАРИЙНЫЙ";
+      if (level === "unknown") return "НЕИЗВЕСТНО";
+      return "СРЕДНИЙ";
     }
     function weightClass(w) {
       if (w >= 10) return "w-high";
@@ -1070,18 +1078,6 @@
       }).join("");
     }
 
-    // ───── Asset icons guess ─────
-    function assetIcon(text) {
-      const t = (text || "").toLowerCase();
-      if (/вклад|депозит/i.test(t)) return "💼";
-      if (/валют|доллар|евро|usd|eur|юань|cny/i.test(t)) return "💱";
-      if (/облиг|офз|bond/i.test(t)) return "🏛️";
-      if (/акци|акция|stocks/i.test(t)) return "📈";
-      if (/золот|gold/i.test(t)) return "🥇";
-      if (/недвиж|квартир/i.test(t)) return "🏠";
-      return "💼";
-    }
-
     // ───── Linkify [N] → <a href> ─────
     function linkify(text, sourcesMap) {
       const escaped = escHtml(String(text || ""));
@@ -1118,7 +1114,7 @@
       const heroEmoji = $("heroEmoji");
       heroEmoji.textContent = riskEmoji(level);
       heroEmoji.style.setProperty("--glow-color",
-        color === "green" ? "#3fb950" : color === "red" ? "#f85149" : "#d29922");
+        color === "green" ? "#3fb950" : color === "red" ? "#f85149" : color === "orange" ? "#e3811c" : "#d29922");
 
       const heroLabel = $("heroLabel");
       heroLabel.textContent = riskLabel(level);
@@ -1152,8 +1148,22 @@
         updEl.textContent = "";
       }
 
-      // Triggered criteria
-      const triggered = res.triggered_criteria || [];
+      // Triggered criteria — enrich from registry/status if stored as ID strings
+      const regById = {};
+      (res.criteria_registry || data.criteria_registry || []).forEach(r => { regById[r.id] = r; });
+      const stById = {};
+      (res.criteria_status || data.criteria_status || []).forEach(s => { stById[s.id] = s; });
+
+      const rawTriggered = res.triggered_criteria || [];
+      const triggered = rawTriggered.map(item => {
+        if (typeof item === "string") {
+          const reg = regById[item] || {};
+          const st  = stById[item]  || {};
+          return { id: item, name: reg.name || item, weight: reg.weight || 0, evidence: st.rationale || "" };
+        }
+        return item;
+      });
+
       const container = $("triggeredContainer");
       if (!triggered.length) {
         container.innerHTML = `<div class="no-triggers">✅ Всё спокойно — ни один критерий не сработал</div>`;
@@ -1176,50 +1186,33 @@
         container.appendChild(grid);
       }
 
-      // Summary & Recommendation
+      // Summary
       $("summaryText").innerHTML = linkify(res.summary || "—", globalSourcesMap);
-      $("recommendationText").innerHTML = linkify(res.recommendation || "—", globalSourcesMap);
 
       // Trends
       listItems(res.positive_trends, "positiveTrends");
       listItems(res.negative_trends, "negativeTrends");
       listItems(res.key_risks_6m,    "risks6m");
 
-      // Asset guidance
-      const assetsGrid = $("assetsGrid");
-      const guidance = res.asset_guidance || [];
-      const assetTitles = ["💼 Вклады", "💱 Валюта", "🏛️ Облигации"];
-      if (guidance.length) {
-        assetsGrid.innerHTML = guidance.slice(0, 6).map((item, i) => {
-          const text = typeof item === "string" ? item.replace(/^•\s*/,"") : String(item);
-          // Try to detect if it has a label prefix like "Вклады: ..."
-          const title = assetTitles[i] || (assetIcon(text) + " Активы");
-          return `
-            <div class="asset-card">
-              <div class="asset-card-title">${title}</div>
-              <p>${escHtml(text)}</p>
-            </div>`;
-        }).join("");
-      } else {
-        assetsGrid.innerHTML = `<p style="color:var(--muted); font-size:.85rem; grid-column:1/-1">Нет данных по активам.</p>`;
-      }
-
       // History
       const history = res.history || data.history || [];
       const timeline = $("historyTimeline");
       if (history.length) {
         timeline.innerHTML = history.map((h, idx) => {
-          const hColor = riskColor((h.risk_level || "yellow").toLowerCase());
-          const hEmoji = riskEmoji((h.risk_level || "yellow").toLowerCase());
+          const hLevel = (h.risk_level || "unknown").toLowerCase();
+          const hColor = riskColor(hLevel);
+          const hEmoji = riskEmoji(hLevel);
           const hDate = formatDateShort(h.timestamp);
+          const scoreVal = h.total_score != null ? h.total_score : "?";
           const connector = idx < history.length - 1
             ? `<div class="history-connector"></div>` : "";
           return `
             <div class="history-item">
-              <div class="history-dot ${hColor}" title="Прогон #${h.run_id} · ${hDate} · Очки: ${h.total_score || 0}">
-                ${h.total_score || 0}
+              <div class="history-dot ${hColor}" title="Прогон #${h.run_id} · ${hDate} · Очки: ${scoreVal}">
+                ${hEmoji}
               </div>
-              <div class="history-dot-label">#${h.run_id} ${hEmoji}</div>
+              <div class="history-dot-label">#${h.run_id}</div>
+              <div class="history-dot-label" style="font-weight:700;color:var(--text);font-size:.7rem">${scoreVal} очк.</div>
             </div>
             ${connector}`;
         }).join("");
