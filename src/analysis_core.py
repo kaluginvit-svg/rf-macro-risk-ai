@@ -290,6 +290,46 @@ def _parse_telegram_posts(raw_html: str) -> list[dict]:
 # ─────────────────────── Web export ────────────────────────
 
 
+def _auto_git_push(path: Path, data: dict) -> None:
+    import subprocess
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=str(path.parent), capture_output=True, text=True, timeout=10,
+        )
+        if r.returncode != 0:
+            return
+        repo_root = r.stdout.strip()
+        rel = path.relative_to(repo_root)
+
+        run_id  = data.get("run_id", "?")
+        risk    = data.get("risk_level", "?")
+        score   = data.get("total_score", "?")
+        ts      = datetime.now().strftime("%Y-%m-%d")
+        msg     = f"auto: data.json {ts} (run #{run_id}, {risk}, {score} pts)"
+
+        subprocess.run(["git", "add", str(rel)], cwd=repo_root, check=True, timeout=10)
+        commit = subprocess.run(
+            ["git", "commit", "-m", msg],
+            cwd=repo_root, capture_output=True, text=True, timeout=15,
+        )
+        if commit.returncode != 0:
+            if "nothing to commit" in commit.stdout + commit.stderr:
+                print("ℹ️ Git: нечего коммитить (data.json не изменился)")
+                return
+            print(f"⚠️ Git commit failed: {commit.stderr.strip()}")
+            return
+        push = subprocess.run(
+            ["git", "push"], cwd=repo_root, capture_output=True, text=True, timeout=30,
+        )
+        if push.returncode == 0:
+            print(f"✅ Git push: {msg}")
+        else:
+            print(f"⚠️ Git push failed: {push.stderr.strip()}")
+    except Exception as e:
+        print(f"⚠️ Git auto-push error: {e}")
+
+
 def export_web_report(
     result: dict | None,
     stats: dict,
@@ -372,6 +412,7 @@ def export_web_report(
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         print(f"✅ Web report exported → {path}")
+        _auto_git_push(path, data)
     except Exception as e:
         print(f"⚠️ Failed to export web report: {e}")
 
