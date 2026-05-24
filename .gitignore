@@ -1,6 +1,17 @@
 # Telethon session (содержит токен пользовательской сессии — не коммитить)
 tg_session.session
 tg_session.session-journal
+tg_*.session
+tg_*.session-journal
+
+# Local run artifacts
+runs_history.json
+research_ledger.json
+result_run*_full.json
+export_run*.py
+save_run*.py
+spam_*.txt
+.claude/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

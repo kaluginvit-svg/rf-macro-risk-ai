@@ -2,21 +2,33 @@
   "thresholds": {
     "green": {
       "min": 0,
-      "max": 6,
+      "max": 19,
       "label": "НИЗКИЙ",
       "emoji": "🟢"
     },
     "yellow": {
-      "min": 7,
-      "max": 12,
+      "min": 20,
+      "max": 39,
       "label": "СРЕДНИЙ",
       "emoji": "🟡"
     },
+    "orange": {
+      "min": 40,
+      "max": 69,
+      "label": "СУЩЕСТВЕННЫЙ",
+      "emoji": "🟠"
+    },
     "red": {
-      "min": 13,
+      "min": 70,
       "max": 999,
       "label": "ВЫСОКИЙ",
       "emoji": "🔴"
+    },
+    "black": {
+      "min": 0,
+      "max": 999,
+      "label": "АВАРИЙНЫЙ",
+      "emoji": "⚫"
     }
   },
   "criteria": [
@@ -26,7 +38,45 @@
       "description": "Официальные действия государства по изменению условий внутреннего долга. Сильный сигнал системного стресса.",
       "search_query": "ОФЗ реструктуризация перенос выплат принудительный обмен 2026",
       "weight": 10,
-      "speed": "fast"
+      "speed": "fast",
+      "source_group": "official_event",
+      "source_policy": {
+        "requires_official": true,
+        "primary_domains": [
+          "minfin.gov.ru",
+          "cbr.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 1,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 7,
+        "fallback_window_days": 30
+      },
+      "role": "shock",
+      "cooldown_days": 0,
+      "triggers_black": true,
+      "severity_levels": {
+        "watch": "Слухи/неофициальные сигналы о затруднениях с обслуживанием ОФЗ",
+        "warming_up": "Официальные консультации или поручения о пересмотре условий внутреннего долга",
+        "triggered": "Официальное решение о реструктуризации/переносе выплат/принудительном обмене ОФЗ",
+        "critical": "Реструктуризация вступила в силу, рынок ОФЗ заморожен, держатели несут потери"
+      },
+      "scenario_weights": {
+        "budget_stress": 0.5,
+        "banking_stress": 0.3,
+        "fx_payment_stress": 0.2
+      }
     },
     {
       "id": "new_fx_controls_severe",
@@ -34,7 +84,46 @@
       "description": "Новые меры, существенно ограничивающие валютные операции/переводы.",
       "search_query": "новые валютные ограничения ужесточение переводы за рубеж 2026",
       "weight": 6,
-      "speed": "fast"
+      "speed": "fast",
+      "source_group": "official_event",
+      "source_policy": {
+        "requires_official": true,
+        "primary_domains": [
+          "cbr.ru",
+          "kremlin.ru",
+          "rg.ru",
+          "government.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 1,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 7,
+        "fallback_window_days": 30
+      },
+      "role": "shock",
+      "cooldown_days": 14,
+      "severity_levels": {
+        "watch": "Обсуждение/слухи о новых валютных ограничениях без официального решения",
+        "warming_up": "Опубликованы проекты нормативных актов или официально анонсированы меры",
+        "triggered": "Новые валютные ограничения официально введены и вступили в силу",
+        "critical": "Полный запрет или фактическая заморозка валютных операций для физлиц/компаний"
+      },
+      "scenario_weights": {
+        "fx_payment_stress": 0.55,
+        "banking_stress": 0.25,
+        "real_economy_decline": 0.2
+      }
     },
     {
       "id": "systemic_bank_resolution",
@@ -42,7 +131,43 @@
       "description": "Официальная санация/временная администрация в крупном банке.",
       "search_query": "site:cbr.ru санация временная администрация крупный банк 2026",
       "weight": 6,
-      "speed": "fast"
+      "speed": "fast",
+      "source_group": "official_event",
+      "source_policy": {
+        "requires_official": true,
+        "primary_domains": [
+          "cbr.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 1,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 7,
+        "fallback_window_days": 30
+      },
+      "role": "shock",
+      "cooldown_days": 14,
+      "severity_levels": {
+        "watch": "Неофициальные сообщения/слухи о проблемах крупного банка без подтверждения ЦБ",
+        "warming_up": "ЦБ проводит проверку, стресс-тест или экстренные переговоры с банком",
+        "triggered": "Официально начата санация/введена временная администрация в крупном банке",
+        "critical": "Санация системно значимого банка с немедленным ограничением доступа клиентов"
+      },
+      "scenario_weights": {
+        "deposit_access": 0.4,
+        "banking_stress": 0.45,
+        "corporate_credit_stress": 0.15
+      }
     },
     {
       "id": "payment_infrastructure_systemic_disruption",
@@ -50,7 +175,45 @@
       "description": "Системные перебои в СБП/картах/межбанковских платежах.",
       "search_query": "НСПК СБП массовый сбой ограничение операций 2026",
       "weight": 4,
-      "speed": "fast"
+      "speed": "fast",
+      "source_group": "news_event",
+      "source_policy": {
+        "requires_official": false,
+        "primary_domains": [
+          "nspk.ru",
+          "cbr.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 2,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 7,
+        "fallback_window_days": 30
+      },
+      "role": "leading",
+      "cooldown_days": 14,
+      "severity_levels": {
+        "watch": "Единичные сообщения о перебоях в СБП/картах, неподтверждённые НСПК/ЦБ",
+        "warming_up": "Несколько независимых подтверждений перебоев, НСПК/ЦБ выпустили официальное уведомление",
+        "triggered": "Системные перебои СБП/карт/межбанка подтверждены НСПК/ЦБ, затронули несколько регионов",
+        "critical": "Межбанковские расчёты/СБП не работают более 4 часов по всей стране"
+      },
+      "scenario_weights": {
+        "deposit_access": 0.45,
+        "banking_stress": 0.25,
+        "fx_payment_stress": 0.2,
+        "real_economy_decline": 0.1
+      }
     },
     {
       "id": "inflation_reacceleration",
@@ -58,7 +221,44 @@
       "description": "Признаки возобновления инфляционного давления по данным/коммуникациям.",
       "search_query": "инфляция ускорилась инфляционные ожидания ЦБ 2026",
       "weight": 3,
-      "speed": "medium"
+      "speed": "medium",
+      "source_group": "official_stats",
+      "source_policy": {
+        "requires_official": true,
+        "primary_domains": [
+          "rosstat.gov.ru",
+          "cbr.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 1,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 30,
+        "fallback_window_days": 30
+      },
+      "role": "context",
+      "cooldown_days": 30,
+      "severity_levels": {
+        "watch": "Недельная инфляция выше 0,3% или инфляционные ожидания населения выросли на 1 п.п.",
+        "warming_up": "Месячная инфляция выше 1% или инфляционные ожидания достигли 15%+",
+        "triggered": "Годовая инфляция ускорилась с тренда снижения ИЛИ ЦБ пересматривает прогноз вверх",
+        "critical": "Годовая инфляция выше 15% или ЦБ явно сигнализирует о потере контроля над инфляцией"
+      },
+      "scenario_weights": {
+        "inflation_rate_stress": 0.7,
+        "banking_stress": 0.2,
+        "real_economy_decline": 0.1
+      }
     },
     {
       "id": "budget_emergency_amendments",
@@ -66,7 +266,45 @@
       "description": "Срочные поправки, ухудшающие параметры бюджета.",
       "search_query": "экстренные поправки в бюджет рост дефицита 2026",
       "weight": 4,
-      "speed": "fast"
+      "speed": "fast",
+      "source_group": "official_event",
+      "source_policy": {
+        "requires_official": true,
+        "primary_domains": [
+          "minfin.gov.ru",
+          "government.ru",
+          "rg.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 1,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 7,
+        "fallback_window_days": 30
+      },
+      "role": "leading",
+      "cooldown_days": 21,
+      "severity_levels": {
+        "watch": "Минфин сигнализирует о плановом уточнении с небольшим ростом дефицита",
+        "warming_up": "Внесены поправки, увеличивающие дефицит или заимствования на 15-30% от плана",
+        "triggered": "Экстренные поправки с ростом дефицита 30%+ от плана или срочной риторикой",
+        "critical": "Дефицит пересматривается дважды за квартал или секвестр расходов объявлен официально"
+      },
+      "scenario_weights": {
+        "budget_stress": 0.6,
+        "inflation_rate_stress": 0.25,
+        "banking_stress": 0.15
+      }
     },
     {
       "id": "corporate_default_wave",
@@ -74,7 +312,44 @@
       "description": "Серия дефолтов/реструктуризаций по долгам в разных секторах.",
       "search_query": "дефолт по облигациям реструктуризация долга компании Россия 2026",
       "weight": 4,
-      "speed": "medium"
+      "speed": "medium",
+      "source_group": "news_event",
+      "source_policy": {
+        "requires_official": false,
+        "primary_domains": [
+          "fedresurs.ru",
+          "cbr.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 2,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 30,
+        "fallback_window_days": 30
+      },
+      "role": "leading",
+      "cooldown_days": 21,
+      "severity_levels": {
+        "watch": "1-3 дефолта по облигациям за месяц без явной системности",
+        "warming_up": "3-9 дефолтов или реструктуризаций за месяц в 1-2 секторах",
+        "triggered": "10+ дефолтов/реструктуризаций за месяц ИЛИ 3+ сектора затронуты одновременно",
+        "critical": "Волна дефолтов охватила системно важные эмитенты, рынок облигаций заморожен"
+      },
+      "scenario_weights": {
+        "corporate_credit_stress": 0.55,
+        "banking_stress": 0.25,
+        "real_economy_decline": 0.2
+      }
     },
     {
       "id": "mortgage_real_estate_stress",
@@ -82,7 +357,44 @@
       "description": "Падение выдач/рост просрочки/проблемы застройщиков.",
       "search_query": "ипотека спад выдач рост просрочки проблемы застройщиков 2026",
       "weight": 3,
-      "speed": "medium"
+      "speed": "medium",
+      "source_group": "news_event",
+      "source_policy": {
+        "requires_official": false,
+        "primary_domains": [
+          "cbr.ru",
+          "dom.rf"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 2,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 30,
+        "fallback_window_days": 30
+      },
+      "role": "leading",
+      "cooldown_days": 21,
+      "severity_levels": {
+        "watch": "Выдачи ипотеки снизились на 10-30% г/г или просрочка по ипотеке выросла на 0,5-1 п.п.",
+        "warming_up": "Выдачи упали на 30-50% г/г, несколько застройщиков получили кассовый разрыв",
+        "triggered": "Выдачи упали более 50% г/г ИЛИ 3+ крупных застройщика заморозили проекты/банкротятся",
+        "critical": "Системный кризис ипотеки: банки прекращают выдачи, эскроу массово разморожены"
+      },
+      "scenario_weights": {
+        "corporate_credit_stress": 0.35,
+        "real_economy_decline": 0.35,
+        "banking_stress": 0.3
+      }
     },
     {
       "id": "cbr_repo_volume_spike",
@@ -90,7 +402,43 @@
       "description": "По данным Банка России (cbr.ru, раздел операций открытого рынка): суммарный объём средств, привлечённых банковским сектором у ЦБ через операции РЕПО, вырос в 3 и более раза относительно скользящего среднего за предшествующие 4 недели. Сигнал заморозки межбанковского рынка. НЕ СЧИТАТЬ: рост в период налоговых выплат (20–28 числа месяца) без сохранения тренда, разовый всплеск без продолжения, рост в рамках 2x от среднего.",
       "search_query": "site:cbr.ru операции РЕПО объём банки ликвидность открытый рынок 2026",
       "weight": 10,
-      "speed": "fast"
+      "speed": "fast",
+      "source_group": "official_stats",
+      "source_policy": {
+        "requires_official": true,
+        "primary_domains": [
+          "cbr.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 1,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 7,
+        "fallback_window_days": 30
+      },
+      "role": "leading",
+      "cooldown_days": 14,
+      "severity_levels": {
+        "watch": "Объём РЕПО с ЦБ вырос в 1,5-2x относительно месячного среднего",
+        "warming_up": "Объём РЕПО с ЦБ вырос в 2-3x, держится 3+ рабочих дня вне налогового периода",
+        "triggered": "Объём РЕПО с ЦБ вырос в 3x+ относительно скользящего среднего за 4 недели",
+        "critical": "Объём РЕПО с ЦБ в 5x+ от среднего устойчиво, межбанк де-факто заморожен"
+      },
+      "scenario_weights": {
+        "banking_stress": 0.65,
+        "deposit_access": 0.2,
+        "inflation_rate_stress": 0.15
+      }
     },
     {
       "id": "ofz_yield_curve_inversion_spike",
@@ -98,7 +446,44 @@
       "description": "Спред между доходностью ОФЗ 1–2 года и ОФЗ 10+ лет вырос на 3 п.п. и более за 10 рабочих дней, ИЛИ спред превысил 5 п.п. на фоне ухудшения других индикаторов. Данные: cbr.ru и Мосбиржа, ежедневно. Сигнал острого краткосрочного стресса: рынок требует премию за риск на коротком конце, не доверяя текущим ставкам. НЕ СЧИТАТЬ: хроническую умеренную инверсию в 1–2 п.п. без динамики, плановое изменение ключевой ставки, реакцию на очевидное решение ЦБ.",
       "search_query": "кривая доходности ОФЗ инверсия спред короткие длинные резкий рост доходность 2026",
       "weight": 6,
-      "speed": "fast"
+      "speed": "fast",
+      "source_group": "market_data",
+      "source_policy": {
+        "requires_official": false,
+        "primary_domains": [
+          "moex.com",
+          "cbr.ru"
+        ],
+        "secondary_domains": [
+          "interfax.ru",
+          "tass.ru",
+          "rbc.ru",
+          "kommersant.ru",
+          "vedomosti.ru",
+          "banki.ru",
+          "ria.ru"
+        ],
+        "min_independent_sources": 1,
+        "allow_reuse_official": true,
+        "allow_undated_non_official": false
+      },
+      "freshness": {
+        "window_days": 7,
+        "fallback_window_days": 30
+      },
+      "role": "leading",
+      "cooldown_days": 14,
+      "severity_levels": {
+        "watch": "Спред 1-3 п.п. между короткими и длинными ОФЗ, динамика нарастает",
+        "warming_up": "Спред 3-5 п.п. или рост на 3 п.п. за 10 рабочих дней",
+        "triggered": "Спред 5+ п.п. ИЛИ рост на 3+ п.п. за 10 рабочих дней на фоне ухудшения других индикаторов",
+        "critical": "Спред 8+ п.п. или резкая разница аукционных доходностей без объяснения ЦБ"
+      },
+      "scenario_weights": {
+        "inflation_rate_stress": 0.45,
+        "banking_stress": 0.35,
+        "budget_stress": 0.2
+      }
     }
   ]
 }

@@ -1,0 +1,517 @@
+{
+  "run_date": "2026-05-23",
+  "run_type": "agentic_full_pass",
+  "criteria_total": 35,
+  "checked": {
+    "fast": "18/18",
+    "medium": "13/13",
+    "slow": "4/4"
+  },
+  "triggered_count": 11,
+  "total_score": 70,
+  "risk_level": "red",
+  "telegram_post_sources": 13,
+  "audit_sources": 31,
+  "notes": [
+    "Audit trail separates publication sources from research sources.",
+    "Quiet criteria are recorded even when no accepted source triggered the criterion.",
+    "Old, undated, single-company, or non-official materials were not counted as triggers."
+  ],
+  "sources": [
+    {
+      "id": 1,
+      "url": "https://amp.rbc.ru/rbcnews/finances/08/05/2026/69fe2ab29a7947670d3e3409",
+      "domain": "rbc.ru",
+      "date": "2026-05-08",
+      "type": "news",
+      "used_in_post": true
+    },
+    {
+      "id": 2,
+      "url": "https://ru.investing.com/news/general-news/article-3249640",
+      "domain": "investing.com",
+      "date": "2026-05-22",
+      "type": "news",
+      "used_in_post": true
+    },
+    {
+      "id": 3,
+      "url": "https://www.finmarket.ru/news/6607029",
+      "domain": "finmarket.ru",
+      "date": "2026-04-24",
+      "type": "news",
+      "used_in_post": true
+    },
+    {
+      "id": 4,
+      "url": "https://cbr.ru/statistics/bank_sector/sors/credit/",
+      "domain": "cbr.ru",
+      "date": "2026-05",
+      "type": "official_stats",
+      "used_in_post": true
+    },
+    {
+      "id": 5,
+      "url": "https://rg.ru/2026/05/08/deficit-federalnogo-biudzheta-v-pervye-mesiacy-etogo-goda-dostig-587-trln-rublej.html",
+      "domain": "rg.ru",
+      "date": "2026-05-08",
+      "type": "official_media",
+      "used_in_post": true
+    },
+    {
+      "id": 6,
+      "url": "https://www.kommersant.ru/doc/8674989",
+      "domain": "kommersant.ru",
+      "date": "2026-05-21",
+      "type": "news",
+      "used_in_post": true
+    },
+    {
+      "id": 7,
+      "url": "https://rosstat.gov.ru/storage/mediabank/57_22-04-2026.html",
+      "domain": "rosstat.gov.ru",
+      "date": "2026-04-22",
+      "type": "official_stats",
+      "used_in_post": true
+    },
+    {
+      "id": 8,
+      "url": "https://www.banki.ru/news/lenta/?id=11022995",
+      "domain": "banki.ru",
+      "date": "2026-04",
+      "type": "news",
+      "used_in_post": true
+    },
+    {
+      "id": 9,
+      "url": "https://investfuture.ru/articles/tsentrobank-uzhestochaet-usloviya-ipoteki-na-fone-rosta-prosrochek-v-2026-godu-1179072420",
+      "domain": "investfuture.ru",
+      "date": "2026-04-29",
+      "type": "news",
+      "used_in_post": true
+    },
+    {
+      "id": 10,
+      "url": "https://www.kommersant.ru/doc/8623726",
+      "domain": "kommersant.ru",
+      "date": "2026-04-27",
+      "type": "news",
+      "used_in_post": true
+    },
+    {
+      "id": 11,
+      "url": "https://www.cbr.ru/press/event/?id=28542",
+      "domain": "cbr.ru",
+      "date": "2026-05-18",
+      "type": "official_event",
+      "used_in_post": true
+    },
+    {
+      "id": 12,
+      "url": "https://www.rosstat.gov.ru/storage/mediabank/72_20-05-2026.html",
+      "domain": "rosstat.gov.ru",
+      "date": "2026-05-20",
+      "type": "official_stats",
+      "used_in_post": true
+    },
+    {
+      "id": 13,
+      "url": "https://www.cbr.ru/press/event/?id=28513",
+      "domain": "cbr.ru",
+      "date": "2026-04-27",
+      "type": "official_event",
+      "used_in_post": true
+    },
+    {
+      "id": 14,
+      "url": "https://www.cbr.ru/eng/dkp/mp_dec/",
+      "domain": "cbr.ru",
+      "date": "2026-04-24",
+      "type": "official_event",
+      "used_in_post": false
+    },
+    {
+      "id": 15,
+      "url": "https://cbr.ru/key-indicators/",
+      "domain": "cbr.ru",
+      "date": "2026-05",
+      "type": "official_stats",
+      "used_in_post": false
+    },
+    {
+      "id": 16,
+      "url": "https://www.cbr.ru/rbr/nfo_prikaz/",
+      "domain": "cbr.ru",
+      "date": "2026-05",
+      "type": "official_event",
+      "used_in_post": false
+    },
+    {
+      "id": 17,
+      "url": "https://cbr.ru/press/pr/?file=639047528700267796BANK_SECTOR.htm",
+      "domain": "cbr.ru",
+      "date": "2026-01-23",
+      "type": "official_event",
+      "used_in_post": false
+    },
+    {
+      "id": 18,
+      "url": "https://www.moex.com/n99147/?nt=0",
+      "domain": "moex.com",
+      "date": "2026-04-08",
+      "type": "official_event",
+      "used_in_post": false
+    },
+    {
+      "id": 19,
+      "url": "https://www.moex.com/",
+      "domain": "moex.com",
+      "date": "2026-05",
+      "type": "official_event",
+      "used_in_post": false
+    },
+    {
+      "id": 20,
+      "url": "https://www.cbr.ru/params/",
+      "domain": "cbr.ru",
+      "date": "2026-05",
+      "type": "official_stats",
+      "used_in_post": false
+    },
+    {
+      "id": 21,
+      "url": "https://www.cbr.ru/oper_br/",
+      "domain": "cbr.ru",
+      "date": "2026-05",
+      "type": "official_stats",
+      "used_in_post": false
+    },
+    {
+      "id": 22,
+      "url": "https://cbr.ru/hd_base/dirrepoauctionparam/",
+      "domain": "cbr.ru",
+      "date": "2026-05",
+      "type": "official_stats",
+      "used_in_post": false
+    },
+    {
+      "id": 23,
+      "url": "https://cbr.ru/Collection/Collection/File/60968/DKU_2604.pdf",
+      "domain": "cbr.ru",
+      "date": "2026-05",
+      "type": "official_report",
+      "used_in_post": false
+    },
+    {
+      "id": 24,
+      "url": "https://cbr.ru/analytics/fin_stab/orfr/ORFR_2026-4/",
+      "domain": "cbr.ru",
+      "date": "2026-05",
+      "type": "official_report",
+      "used_in_post": false
+    },
+    {
+      "id": 25,
+      "url": "https://www.cbr.ru/statistics/ddkp/mo_br/",
+      "domain": "cbr.ru",
+      "date": "2026-04",
+      "type": "official_stats",
+      "used_in_post": false
+    },
+    {
+      "id": 26,
+      "url": "https://www.vedomosti.ru/investments/news/2026/05/06/1195652-minfin-ofz",
+      "domain": "vedomosti.ru",
+      "date": "2026-05-06",
+      "type": "news",
+      "used_in_post": false
+    },
+    {
+      "id": 27,
+      "url": "https://finance.rambler.ru/economics/56439207-minfin-razmestil-ofz-26249-na-63-893-mlrd-rubley/amp/",
+      "domain": "rambler.ru",
+      "date": "2026-05-13",
+      "type": "news",
+      "used_in_post": false
+    },
+    {
+      "id": 28,
+      "url": "https://www.vedomosti.ru/business/news/2026/05/04/1194895-pogruzka-na-seti-rzhd",
+      "domain": "vedomosti.ru",
+      "date": "2026-05-04",
+      "type": "news",
+      "used_in_post": false
+    },
+    {
+      "id": 29,
+      "url": "https://www.rosstat.gov.ru/storage/mediabank/71_20-05-2026.html",
+      "domain": "rosstat.gov.ru",
+      "date": "2026-05-20",
+      "type": "official_stats",
+      "used_in_post": false
+    },
+    {
+      "id": 30,
+      "url": "https://28.rosstat.gov.ru/storage/mediabank/20_2_5%20.htm",
+      "domain": "rosstat.gov.ru",
+      "date": "2026-05",
+      "type": "official_stats",
+      "used_in_post": false
+    },
+    {
+      "id": 31,
+      "url": "https://www.interfax.ru/amp/1090917",
+      "domain": "interfax.ru",
+      "date": "2026-05-21",
+      "type": "news",
+      "used_in_post": false
+    }
+  ],
+  "criteria_status": [
+    {
+      "id": "force_majeure_state_event",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No fresh official kremlin.ru/rg.ru/government.ru evidence found for martial law, emergency regime, coup, nuclear incident, or NATO clash.",
+      "source_ids": []
+    },
+    {
+      "id": "sovereign_domestic_debt_event",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "OFZ auctions continued; no official restructuring, payment delay, moratorium, or forced exchange found.",
+      "source_ids": [23, 26, 27]
+    },
+    {
+      "id": "bank_holidays_national",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No official emergency bank holiday or national settlement suspension found.",
+      "source_ids": []
+    },
+    {
+      "id": "cb_emergency_rate_hike",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "Latest key-rate decisions were scheduled cuts, not an unscheduled emergency hike.",
+      "source_ids": [14, 15]
+    },
+    {
+      "id": "new_fx_controls_severe",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No new severe FX-control measure found; older/planned FX operations were not counted.",
+      "source_ids": [23]
+    },
+    {
+      "id": "systemic_bank_resolution",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No fresh resolution of a large/systemically important bank found.",
+      "source_ids": [16, 17]
+    },
+    {
+      "id": "deposit_outflow_mass",
+      "status": "watch",
+      "score": 0,
+      "evidence": "Some current-account outflow signals exist, but no confirmed total household deposit outflow above threshold.",
+      "source_ids": [23]
+    },
+    {
+      "id": "moex_trading_halt",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "Only isolated securities actions were found; no broad market halt longer than one working day.",
+      "source_ids": [18, 19]
+    },
+    {
+      "id": "bank_license_chain_or_large",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "NMB licence revocation was old and not a large-bank/chain event.",
+      "source_ids": [17]
+    },
+    {
+      "id": "payment_infrastructure_systemic_disruption",
+      "status": "triggered",
+      "score": 9,
+      "evidence": "Bank of Russia payment-information exchange disruption on 2026-05-08; prior mass banking-service outage also found.",
+      "source_ids": [1]
+    },
+    {
+      "id": "cash_m0_surge",
+      "status": "watch",
+      "score": 0,
+      "evidence": "Cash/M0 data monitored; no accepted evidence of unprecedented panic cash withdrawal above criterion threshold.",
+      "source_ids": [20, 23]
+    },
+    {
+      "id": "cb_emergency_actions_fin_stability",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No fresh unscheduled emergency financial-stability action by the Bank of Russia found.",
+      "source_ids": [21, 23]
+    },
+    {
+      "id": "budget_emergency_amendments",
+      "status": "triggered",
+      "score": 6,
+      "evidence": "Federal budget deficit for Jan-Apr 2026 reached 5.877 trillion rubles, materially above full-year planned deficit.",
+      "source_ids": [5]
+    },
+    {
+      "id": "corporate_default_wave",
+      "status": "triggered",
+      "score": 8,
+      "evidence": "Multiple corporate bond defaults/technical defaults were reported in May.",
+      "source_ids": [2, 24]
+    },
+    {
+      "id": "wage_arrears",
+      "status": "triggered",
+      "score": 5,
+      "evidence": "Rosstat wage arrears reached 2.1296 billion rubles at end-March, up 47.1% year over year.",
+      "source_ids": [7]
+    },
+    {
+      "id": "new_sanctions_trade_finance",
+      "status": "triggered",
+      "score": 8,
+      "evidence": "EU transaction restrictions against 20 Russian banks worsen payment/trade finance channels.",
+      "source_ids": [3]
+    },
+    {
+      "id": "cbr_repo_volume_spike",
+      "status": "watch",
+      "score": 0,
+      "evidence": "Repo limits/operations monitored; no accepted spike signal sufficient for trigger.",
+      "source_ids": [21, 22]
+    },
+    {
+      "id": "cash_fx_premium_spike",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No reliable fresh evidence of abnormal cash FX premium above criterion threshold.",
+      "source_ids": []
+    },
+    {
+      "id": "banking_npl_systemic_rise",
+      "status": "triggered",
+      "score": 8,
+      "evidence": "Corporate overdue debt rose to 3.0 trillion rubles and 3.6% of the portfolio.",
+      "source_ids": [4]
+    },
+    {
+      "id": "deposit_rate_spread_spike",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No abnormal deposit-rate spread above the key rate confirmed.",
+      "source_ids": [15]
+    },
+    {
+      "id": "ofz_yield_curve_inversion_spike",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "OFZ yields eased in April; no sharp inversion spike found.",
+      "source_ids": [23]
+    },
+    {
+      "id": "interbank_liquidity_stress",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "RUONIA/interbank indicators monitored; no sustained stress spread confirmed.",
+      "source_ids": [15, 23]
+    },
+    {
+      "id": "inflation_reacceleration",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "Weekly inflation did not reaccelerate; household inflation expectations declined in April.",
+      "source_ids": [12, 13]
+    },
+    {
+      "id": "ruble_depreciation_shock",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No sharp ruble depreciation shock; available evidence pointed to ruble strengthening/stability.",
+      "source_ids": [15, 23]
+    },
+    {
+      "id": "ofz_market_stress",
+      "status": "watch",
+      "score": 0,
+      "evidence": "High borrowing needs remain, but auctions were placed and yields did not show accepted stress trigger.",
+      "source_ids": [23, 26, 27]
+    },
+    {
+      "id": "household_credit_stress",
+      "status": "triggered",
+      "score": 5,
+      "evidence": "Retail overdue debt was reported close to multi-year highs.",
+      "source_ids": [8]
+    },
+    {
+      "id": "mortgage_real_estate_stress",
+      "status": "triggered",
+      "score": 5,
+      "evidence": "Mortgage arrears rose and the Bank of Russia tightened macroprudential conditions.",
+      "source_ids": [9]
+    },
+    {
+      "id": "labor_market_deterioration",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "Wage arrears triggered a separate criterion; no broad unemployment/labor-market deterioration trigger confirmed.",
+      "source_ids": [7]
+    },
+    {
+      "id": "regional_finance_crisis",
+      "status": "triggered",
+      "score": 5,
+      "evidence": "Finance Ministry expected regional budget deficit around 1.9 trillion rubles in 2026.",
+      "source_ids": [10]
+    },
+    {
+      "id": "external_trade_deterioration",
+      "status": "triggered",
+      "score": 5,
+      "evidence": "Current account surplus declined as imports grew faster than exports.",
+      "source_ids": [11]
+    },
+    {
+      "id": "oil_price_shock_urals",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "Urals/oil signals were mixed or positive; no negative oil price shock accepted.",
+      "source_ids": [23]
+    },
+    {
+      "id": "personal_bankruptcy_surge",
+      "status": "triggered",
+      "score": 6,
+      "evidence": "137.5 thousand citizens were declared bankrupt in Q1 2026, exceeding the 30k/month threshold.",
+      "source_ids": [6, 31]
+    },
+    {
+      "id": "rzd_freight_collapse",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "RZD loading rose 1.9% year over year in April; Jan-Apr decline was below the 8% trigger threshold.",
+      "source_ids": [28]
+    },
+    {
+      "id": "retail_sales_real_decline",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "No sustained nationwide real retail-sales decline above the criterion threshold confirmed.",
+      "source_ids": [30]
+    },
+    {
+      "id": "industrial_output_contraction",
+      "status": "quiet",
+      "score": 0,
+      "evidence": "Producer-price shock was monitored; no sustained industrial-output contraction trigger confirmed.",
+      "source_ids": [29]
+    }
+  ]
+}
