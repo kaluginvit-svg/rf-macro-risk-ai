@@ -23,12 +23,10 @@ import httpx
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.tools import tool
-from langchain_anthropic import ChatAnthropic
-from langchain_gigachat import GigaChat
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
-from langchain_tavily import TavilySearch
 from langgraph.checkpoint.memory import InMemorySaver
+# Все LLM-провайдеры и langchain_tavily импортируются лениво внутри
+# соответствующих _init_xxx() / WebSearch функций, чтобы избежать
+# краша OPENSSL_Applink при загрузке aiohttp/google.genai на Windows.
 
 
 
@@ -47,6 +45,13 @@ from analysis_core import (
     save_run_result,
     build_history_trend,
     export_web_report,
+    validate_final_result,
+)
+from source_registry import (
+    load_ledger,
+    record_source,
+    save_ledger,
+    should_keep_source,
 )
 
 load_dotenv()
@@ -65,9 +70,8 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
-# Tavily — поисковый движок, оптимизированный для AI-агентов
-# Важно: держим выдачу короткой, иначе раздуваем контекст.
-_tavily = TavilySearch(max_results=_env_int("TAVILY_MAX_RESULTS", 6))
+# _tavily инициализируется лениво внутри WebSearch при первом вызове.
+_tavily = None
 
 # Временной фильтр поиска — устанавливается в run_agent() по дате предыдущего прогона.
 # Значения: "day" | "week" | "month" | "year" | None (без ограничения)
@@ -79,6 +83,15 @@ _url_dates: dict[str, str] = {}
 
 # Множество уже возвращённых URL за текущий прогон — дубли статей отсекаются.
 _seen_urls: set[str] = set()
+
+# Локальный ledger уже использованных источников между прогонами.
+_research_ledger: dict = {"sources": {}}
+
+# Номер текущего прогона для записи источников в ledger.
+_current_run_id: int | None = None
+
+# Критерии текущего прогона: id → criterion.
+_criteria_by_id: dict[str, dict] = {}
 
 
 def _compute_time_range(last_ts: str | None) -> str:
@@ -145,11 +158,16 @@ def _extract_readable_text_from_html(html: str) -> str:
 @tool
 def WebSearch(query: str) -> str:
     """Поиск актуальных новостей в интернете. Принимает поисковый запрос, возвращает результаты поиска с заголовками, описаниями и ссылками."""
+    global _tavily, _research_ledger
     try:
         # Жёстко ограничиваем размер выдачи, иначе история диалога раздувается
         # и следующее обращение к модели падает с context_length_exceeded.
         per_item_max = _env_int("WEBSEARCH_PER_ITEM_MAX_CHARS", 280)
         total_max = _env_int("WEBSEARCH_MAX_CHARS", 4_000)
+
+        if _tavily is None:
+            from langchain_tavily import TavilySearch as _TavilySearch
+            _tavily = _TavilySearch(max_results=_env_int("TAVILY_MAX_RESULTS", 6))
 
         invoke_params: dict = {"query": query}
         if _search_time_range:
@@ -167,19 +185,42 @@ def WebSearch(query: str) -> str:
             return "Результатов не найдено."
 
         formatted: list[str] = []
+        rejected_counts: dict[str, int] = {}
         for r in results:
             title = r.get("title", "")
             content = r.get("content", "") or r.get("snippet", "") or ""
             url = r.get("url", "")
             date = r.get("published_date") or r.get("date") or ""
 
-            if url:
-                if url in _seen_urls:
-                    continue
-                _seen_urls.add(url)
+            decision = should_keep_source(
+                url=url,
+                published_date=date,
+                title=title,
+                content=content,
+                ledger=_research_ledger,
+                seen_urls=_seen_urls,
+                time_range=_search_time_range,
+            )
+            record_source(
+                _research_ledger,
+                decision=decision,
+                original_url=url,
+                title=title,
+                content=content,
+                query=query,
+                run_id=_current_run_id,
+            )
+            if not decision.keep:
+                rejected_counts[decision.reason] = rejected_counts.get(decision.reason, 0) + 1
+                continue
+
+            if decision.canonical_url:
+                _seen_urls.add(decision.canonical_url)
 
             if url and date:
                 _url_dates[url] = date
+            if decision.canonical_url and date:
+                _url_dates[decision.canonical_url] = date
 
             content = content.strip()
             if content:
@@ -191,6 +232,8 @@ def WebSearch(query: str) -> str:
                 block.append(f"Заголовок: {title}")
             if date:
                 block.append(f"Дата: {date}")
+            if decision.official:
+                block.append("Тип источника: официальный/первичный")
             if content:
                 block.append(f"Фрагмент: {content}")
             if url:
@@ -198,9 +241,133 @@ def WebSearch(query: str) -> str:
             formatted.append("\n".join(block).strip())
 
         out = "\n\n---\n\n".join([b for b in formatted if b])
-        return _truncate_text(out, total_max) if out else "Результатов не найдено."
+        if out:
+            if rejected_counts:
+                rejected = ", ".join(f"{k}: {v}" for k, v in sorted(rejected_counts.items()))
+                out += f"\n\n---\n\nОтфильтровано источников: {rejected}"
+            return _truncate_text(out, total_max)
+        if rejected_counts:
+            rejected = ", ".join(f"{k}: {v}" for k, v in sorted(rejected_counts.items()))
+            return f"Свежих уникальных результатов не найдено. Отфильтровано: {rejected}."
+        return "Результатов не найдено."
     except Exception as e:
         return f"Ошибка поиска: {e}"
+
+
+def _search_web(
+    query: str,
+    *,
+    policy: dict | None = None,
+    label: str | None = None,
+) -> str:
+    """Internal filtered Tavily search used by both tools."""
+    global _tavily, _research_ledger
+    try:
+        per_item_max = _env_int("WEBSEARCH_PER_ITEM_MAX_CHARS", 280)
+        total_max = _env_int("WEBSEARCH_MAX_CHARS", 4_000)
+
+        if _tavily is None:
+            from langchain_tavily import TavilySearch as _TavilySearch
+            _tavily = _TavilySearch(max_results=_env_int("TAVILY_MAX_RESULTS", 6))
+
+        invoke_params: dict = {"query": query}
+        if _search_time_range:
+            invoke_params["time_range"] = _search_time_range
+        raw = _tavily.invoke(invoke_params)
+        if isinstance(raw, dict):
+            results = raw.get("results", [])
+        elif isinstance(raw, list):
+            results = raw
+        else:
+            return str(raw)
+
+        if not results:
+            return "Результатов не найдено."
+
+        formatted: list[str] = []
+        rejected_counts: dict[str, int] = {}
+        for r in results:
+            title = r.get("title", "")
+            content = r.get("content", "") or r.get("snippet", "") or ""
+            url = r.get("url", "")
+            date = r.get("published_date") or r.get("date") or ""
+
+            decision = should_keep_source(
+                url=url,
+                published_date=date,
+                title=title,
+                content=content,
+                ledger=_research_ledger,
+                seen_urls=_seen_urls,
+                time_range=_search_time_range,
+                policy=policy,
+            )
+            record_source(
+                _research_ledger,
+                decision=decision,
+                original_url=url,
+                title=title,
+                content=content,
+                query=query,
+                run_id=_current_run_id,
+            )
+            if not decision.keep:
+                rejected_counts[decision.reason] = rejected_counts.get(decision.reason, 0) + 1
+                continue
+
+            if decision.canonical_url:
+                _seen_urls.add(decision.canonical_url)
+
+            if url and date:
+                _url_dates[url] = date
+            if decision.canonical_url and date:
+                _url_dates[decision.canonical_url] = date
+
+            content = content.strip()
+            if content:
+                content = _truncate_text(content, per_item_max)
+
+            block: list[str] = []
+            if label:
+                block.append(f"Критерий: {label}")
+            if title:
+                block.append(f"Заголовок: {title}")
+            if date:
+                block.append(f"Дата: {date}")
+            if decision.official:
+                block.append("Тип источника: официальный/первичный")
+            if content:
+                block.append(f"Фрагмент: {content}")
+            if url:
+                block.append(f"URL: {url}")
+            formatted.append("\n".join(block).strip())
+
+        out = "\n\n---\n\n".join([b for b in formatted if b])
+        if out:
+            if rejected_counts:
+                rejected = ", ".join(f"{k}: {v}" for k, v in sorted(rejected_counts.items()))
+                out += f"\n\n---\n\nОтфильтровано источников: {rejected}"
+            return _truncate_text(out, total_max)
+        if rejected_counts:
+            rejected = ", ".join(f"{k}: {v}" for k, v in sorted(rejected_counts.items()))
+            return f"Свежих уникальных результатов не найдено. Отфильтровано: {rejected}."
+        return "Результатов не найдено."
+    except Exception as e:
+        return f"Ошибка поиска: {e}"
+
+
+@tool
+def SearchCriterion(criterion_id: str) -> str:
+    """Поиск свежих источников по id критерия. Применяет search_query, freshness и source_policy из criteria.json."""
+    criterion = _criteria_by_id.get(criterion_id)
+    if not criterion:
+        known = ", ".join(sorted(_criteria_by_id)[:10])
+        return f"Неизвестный criterion_id: {criterion_id}. Примеры: {known}"
+    query = criterion.get("search_query", "")
+    if not query:
+        return f"У критерия {criterion_id} нет search_query."
+    label = f"{criterion_id} / {criterion.get('source_group', 'unknown')}"
+    return _search_web(query, policy=criterion, label=label)
 
 
 @tool
@@ -243,10 +410,10 @@ def WebFetch(url: str) -> str:
 # ─────────────────────────── Agent ───────────────────────────
 
 
-def _init_gigachat() -> GigaChat:
+def _init_gigachat():
     """Инициализирует модель GigaChat из переменных окружения."""
+    from langchain_gigachat import GigaChat
     model_name = os.getenv("GIGACHAT_MODEL", "GigaChat-2-Max")
-
     return GigaChat(
         model=model_name,
         timeout=120,
@@ -256,8 +423,10 @@ def _init_gigachat() -> GigaChat:
     )
 
 
-def _init_openai() -> ChatOpenAI:
+def _init_openai():
     """Инициализирует модель OpenAI из переменных окружения."""
+    import httpx as _httpx
+    from langchain_openai import ChatOpenAI
     model_name = os.getenv("OPENAI_MODEL", "gpt-5.2")
     kwargs: dict = {
         "model": model_name,
@@ -267,13 +436,16 @@ def _init_openai() -> ChatOpenAI:
     base_url = os.getenv("OPENAI_BASE_URL")
     if base_url:
         kwargs["base_url"] = base_url
+        # ProxyAPI и другие совместимые прокси могут иметь проблемы с SSL на Windows
+        kwargs["http_client"] = _httpx.Client(verify=False)
+        kwargs["http_async_client"] = _httpx.AsyncClient(verify=False)
     return ChatOpenAI(**kwargs)
 
 
-def _init_gemini() -> ChatGoogleGenerativeAI:
+def _init_gemini():
     """Инициализирует модель Gemini из переменных окружения."""
+    from langchain_google_genai import ChatGoogleGenerativeAI
     model_name = os.getenv("GEMINI_MODEL", "gemini-3.1-pro-preview")
-
     return ChatGoogleGenerativeAI(
         model=model_name,
         temperature=0,
@@ -281,10 +453,10 @@ def _init_gemini() -> ChatGoogleGenerativeAI:
     )
 
 
-def _init_anthropic() -> ChatAnthropic:
+def _init_anthropic():
     """Инициализирует модель Anthropic из переменных окружения."""
+    from langchain_anthropic import ChatAnthropic
     model_name = os.getenv("ANTHROPIC_MODEL", "claude-opus-4-6")
-
     return ChatAnthropic(
         model=model_name,
         temperature=0,
@@ -508,11 +680,15 @@ async def run_agent(
     log(f"🔢 Прогон №{run_id}" + (f" | предыдущий: {last_ts}" if last_ts else " | первый прогон"))
 
     # ── Временной фильтр поиска — только свежие источники ──
-    global _search_time_range, _url_dates, _seen_urls
+    global _search_time_range, _url_dates, _seen_urls, _research_ledger, _current_run_id, _criteria_by_id
     _search_time_range = _compute_time_range(last_ts)
     _url_dates = {}
     _seen_urls = set()
+    _research_ledger = load_ledger()
+    _current_run_id = run_id
+    _criteria_by_id = {c["id"]: c for c in criteria_data.get("criteria", [])}
     log(f"🗓️ Фильтр поиска: не старше «{_search_time_range}» (предыдущий прогон: {last_ts or 'нет'})")
+    log(f"📚 Research ledger: {len(_research_ledger.get('sources', {}))} источников в памяти")
 
     # ── Настройки ──
     search_limit = 50
@@ -574,7 +750,7 @@ async def run_agent(
     checkpointer = InMemorySaver()
     agent = create_agent(
         model=model,
-        tools=[WebSearch, WebFetch],
+        tools=[SearchCriterion, WebSearch, WebFetch],
         system_prompt=prompt,
         checkpointer=checkpointer,
     )
@@ -747,6 +923,8 @@ async def run_agent(
                                 "и без комментариев. БУДЬ КРАТКИМ — отчёт для Telegram.\n"
                                 '{"checked_criteria": [...], "triggered_criteria": [...], '
                                 '"total_score": 0, "risk_level": "green", "confidence": "high/medium/low", "deposit_access_risk":"green", '
+                                '"pulse_score": 0, "pulse_direction": "better/flat/worse", "pulse_summary": "до 160 символов", '
+                                '"criteria_status": [{"id":"criterion_id","status":"quiet/watch/warming_up/triggered/cooling_down","delta":"better/flat/worse","fresh_signals_count":0,"new_sources_count":0,"evidence_strength":"none/low/medium/high"}], '
                                 '"summary": "1-2 предложения макс 220 символов", '
                                 '"recommendation": "1 предложение макс 170 символов", '
                                 '"asset_guidance": ["пункт до 140 символов","пункт до 140 символов","пункт до 140 символов"], '
@@ -777,6 +955,11 @@ async def run_agent(
             log(f"❌ Ошибка финализации: {e}")
 
     # ── Итоги ──
+    final_result = validate_final_result(
+        final_result, criteria_data,
+        allowed_source_urls=set(_seen_urls),
+        ledger=_research_ledger,
+    )
     total_time = (datetime.now() - start_time).total_seconds()
     total_cost = _estimate_cost(provider, total_input_tokens, total_output_tokens)
 
@@ -789,7 +972,9 @@ async def run_agent(
         risk_map = {
             "green": ("🟢", "НИЗКИЙ"),
             "yellow": ("🟡", "СРЕДНИЙ"),
+            "orange": ("🟠", "СУЩЕСТВЕННЫЙ"),
             "red": ("🔴", "ВЫСОКИЙ"),
+            "black": ("⚫", "АВАРИЙНЫЙ"),
         }
         emoji, label = risk_map.get(
             final_result.get("risk_level"), ("❓", "НЕИЗВЕСТНО")
@@ -912,6 +1097,7 @@ async def run_agent(
 
     save_run_result(run_history, run_id, final_result, stats, criteria_path)
     stats["history_trend"] = build_history_trend(run_history, run_id)
+    save_ledger(_research_ledger)
     export_web_report({"result": final_result}, stats, criteria_data, run_history)
 
     return {
@@ -955,15 +1141,19 @@ def _log_text_preview(log, text: str, step_count: int):
 
 async def main():
     """Точка входа — только анализ, без публикации в Telegram.
-    Для публикации используй Бот_репортер/run.py."""
+    Для публикации используй внешний Бот_репортер/edit_post.py."""
     parser = argparse.ArgumentParser(
         description="Агент макро-рисков РФ (LangChain) — анализ без публикации"
     )
+    allowed_providers = ("gigachat", "openai", "gemini", "anthropic")
+    default_provider = os.getenv("MODEL_PROVIDER", "openai")
+    if default_provider not in allowed_providers:
+        default_provider = "openai"
     parser.add_argument(
         "--provider",
-        choices=["gigachat", "openai", "gemini", "anthropic"],
-        default=os.getenv("MODEL_PROVIDER", "openai"),
-        help="Провайдер LLM (по умолчанию: openai, или из MODEL_PROVIDER)",
+        choices=list(allowed_providers),
+        default=default_provider,
+        help="Провайдер LLM (по умолчанию: openai, или из MODEL_PROVIDER).",
     )
     args = parser.parse_args()
 
@@ -988,19 +1178,19 @@ async def main():
 
         bot_dir = os.getenv("BOT_REPORTER_DIR")
         if bot_dir:
-            bot_script = Path(bot_dir) / "run.py"
-            if bot_script.exists():
-                logger.log("📤 Запускаю автопубликацию в Telegram...")
+            edit_script = Path(bot_dir) / "edit_post.py"
+            if edit_script.exists():
+                logger.log(f"📤 Обновляю пост в Telegram...")
                 import subprocess
                 subprocess.run(
-                    [sys.executable, str(bot_script), "--from-file"],
+                    [sys.executable, str(edit_script)],
                     cwd=bot_dir,
                     check=False,
                 )
             else:
-                logger.log(f"⚠️  BOT_REPORTER_DIR задан, но run.py не найден: {bot_script}")
+                logger.log(f"⚠️  BOT_REPORTER_DIR задан, но edit_post.py не найден: {edit_script}")
         else:
-            logger.log("ℹ️  BOT_REPORTER_DIR не задан — публикация пропущена")
+            logger.log("ℹ️  BOT_REPORTER_DIR не задан — обновление Telegram пропущено")
 
         return result
 
