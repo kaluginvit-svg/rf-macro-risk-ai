@@ -152,9 +152,209 @@ def _extract_first_json_object(text: str) -> dict | None:
     return None
 
 
+_ALLOWED_SPEEDS = {"fast", "medium", "slow"}
+_REQUIRED_THRESHOLD_LEVELS = ("green", "yellow", "orange", "red")
+_REQUIRED_CRITERION_FIELDS = (
+    "id",
+    "name",
+    "description",
+    "search_query",
+    "weight",
+    "speed",
+    "source_policy",
+    "freshness",
+)
+
+
+def _normalize_domain(value: str) -> str:
+    text = (value or "").strip().lower()
+    if not text:
+        return ""
+    if "://" in text:
+        text = urlparse(text).netloc.lower()
+    else:
+        text = text.split("/")[0].split("?")[0].split("#")[0]
+    if text.startswith("www."):
+        text = text[4:]
+    return text
+
+
+def _validate_thresholds(thresholds: object) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(thresholds, dict):
+        return ["`thresholds` must be an object."]
+
+    prev_min = None
+    prev_max = None
+    for level in _REQUIRED_THRESHOLD_LEVELS:
+        cfg = thresholds.get(level)
+        if not isinstance(cfg, dict):
+            errors.append(f"`thresholds.{level}` must be an object with `min` and `max`.")
+            continue
+        min_score = cfg.get("min")
+        max_score = cfg.get("max")
+        if not isinstance(min_score, int) or not isinstance(max_score, int):
+            errors.append(f"`thresholds.{level}.min/max` must be integers.")
+            continue
+        if min_score > max_score:
+            errors.append(f"`thresholds.{level}` has min > max.")
+        if prev_min is not None and min_score < prev_min:
+            errors.append(f"`thresholds.{level}.min` must be >= previous level min.")
+        if prev_max is not None and max_score < prev_max:
+            errors.append(f"`thresholds.{level}.max` must be >= previous level max.")
+        prev_min = min_score
+        prev_max = max_score
+    return errors
+
+
+def _validate_source_policy(
+    source_policy: object,
+    criterion_id: str,
+    errors: list[str],
+) -> dict:
+    if not isinstance(source_policy, dict):
+        errors.append(f"`criteria[{criterion_id}].source_policy` must be an object.")
+        return {}
+
+    normalized = dict(source_policy)
+    requires_official = normalized.get("requires_official")
+    if not isinstance(requires_official, bool):
+        errors.append(f"`criteria[{criterion_id}].source_policy.requires_official` must be boolean.")
+
+    min_independent = normalized.get("min_independent_sources", 1)
+    if not isinstance(min_independent, int) or min_independent < 1:
+        errors.append(
+            f"`criteria[{criterion_id}].source_policy.min_independent_sources` must be int >= 1."
+        )
+
+    for key in ("allow_reuse_official", "allow_undated_non_official"):
+        value = normalized.get(key)
+        if value is not None and not isinstance(value, bool):
+            errors.append(f"`criteria[{criterion_id}].source_policy.{key}` must be boolean.")
+
+    for key in ("primary_domains", "secondary_domains"):
+        raw_domains = normalized.get(key, [])
+        if raw_domains is None:
+            raw_domains = []
+        if not isinstance(raw_domains, list):
+            errors.append(f"`criteria[{criterion_id}].source_policy.{key}` must be a list.")
+            continue
+        normalized_domains: list[str] = []
+        for raw_domain in raw_domains:
+            if not isinstance(raw_domain, str):
+                errors.append(f"`criteria[{criterion_id}].source_policy.{key}` contains non-string value.")
+                continue
+            domain = _normalize_domain(raw_domain)
+            if not domain:
+                errors.append(f"`criteria[{criterion_id}].source_policy.{key}` contains empty domain.")
+                continue
+            if domain not in normalized_domains:
+                normalized_domains.append(domain)
+        normalized[key] = normalized_domains
+
+    if normalized.get("requires_official") and not normalized.get("primary_domains"):
+        errors.append(
+            f"`criteria[{criterion_id}].source_policy.primary_domains` must be non-empty when requires_official=true."
+        )
+
+    normalized.setdefault("min_independent_sources", 1)
+    normalized.setdefault("allow_reuse_official", True)
+    normalized.setdefault("allow_undated_non_official", False)
+    return normalized
+
+
+def _validate_freshness(freshness: object, criterion_id: str, errors: list[str]) -> dict:
+    if not isinstance(freshness, dict):
+        errors.append(f"`criteria[{criterion_id}].freshness` must be an object.")
+        return {}
+
+    normalized = dict(freshness)
+    window_days = normalized.get("window_days")
+    if not isinstance(window_days, int) or window_days < 1:
+        errors.append(f"`criteria[{criterion_id}].freshness.window_days` must be int >= 1.")
+
+    fallback_days = normalized.get("fallback_window_days")
+    if fallback_days is not None and (not isinstance(fallback_days, int) or fallback_days < 1):
+        errors.append(f"`criteria[{criterion_id}].freshness.fallback_window_days` must be int >= 1.")
+
+    return normalized
+
+
+def validate_criteria_data(criteria_data: object) -> dict:
+    errors: list[str] = []
+    if not isinstance(criteria_data, dict):
+        raise ValueError("Criteria file must contain a top-level JSON object.")
+
+    normalized = dict(criteria_data)
+    errors.extend(_validate_thresholds(normalized.get("thresholds")))
+
+    criteria = normalized.get("criteria")
+    if not isinstance(criteria, list) or not criteria:
+        errors.append("`criteria` must be a non-empty array.")
+        criteria = []
+
+    seen_ids: set[str] = set()
+    normalized_criteria: list[dict] = []
+    for idx, item in enumerate(criteria):
+        if not isinstance(item, dict):
+            errors.append(f"`criteria[{idx}]` must be an object.")
+            continue
+
+        criterion = dict(item)
+        missing = [k for k in _REQUIRED_CRITERION_FIELDS if k not in criterion]
+        if missing:
+            errors.append(f"`criteria[{idx}]` missing required fields: {', '.join(missing)}.")
+            continue
+
+        criterion_id = criterion.get("id")
+        if not isinstance(criterion_id, str) or not criterion_id.strip():
+            errors.append(f"`criteria[{idx}].id` must be non-empty string.")
+            continue
+        criterion_id = criterion_id.strip()
+        criterion["id"] = criterion_id
+
+        if criterion_id in seen_ids:
+            errors.append(f"Duplicate criterion id: `{criterion_id}`.")
+        seen_ids.add(criterion_id)
+
+        for key in ("name", "description", "search_query"):
+            if not isinstance(criterion.get(key), str) or not criterion.get(key).strip():
+                errors.append(f"`criteria[{criterion_id}].{key}` must be non-empty string.")
+
+        weight = criterion.get("weight")
+        if not isinstance(weight, int) or weight <= 0:
+            errors.append(f"`criteria[{criterion_id}].weight` must be int > 0.")
+
+        speed = criterion.get("speed")
+        if speed not in _ALLOWED_SPEEDS:
+            errors.append(
+                f"`criteria[{criterion_id}].speed` must be one of: {', '.join(sorted(_ALLOWED_SPEEDS))}."
+            )
+
+        criterion["source_policy"] = _validate_source_policy(
+            criterion.get("source_policy"),
+            criterion_id,
+            errors,
+        )
+        criterion["freshness"] = _validate_freshness(
+            criterion.get("freshness"),
+            criterion_id,
+            errors,
+        )
+        normalized_criteria.append(criterion)
+
+    normalized["criteria"] = normalized_criteria
+
+    if errors:
+        formatted = "\n - " + "\n - ".join(errors)
+        raise ValueError(f"Invalid criteria file:{formatted}")
+    return normalized
+
+
 def load_criteria(path: str = "criteria.json") -> dict:
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    return validate_criteria_data(data)
 
 
 def format_criteria_for_prompt(criteria_data: dict) -> str:
