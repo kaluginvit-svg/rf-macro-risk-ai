@@ -1393,21 +1393,19 @@
         }
       }
 
-      if (!loadedFromInline) {
-        fetch("./data.json")
-          .then(r => {
-            if (!r.ok) throw new Error("HTTP " + r.status);
-            return r.json();
-          })
-          .then(data => {
-            $("loadingState").style.display = "none";
-            render(data);
-          })
-          .catch(err => {
-            console.error("[RF Macro] Failed to load data.json:", err);
-            showError(err.message);
-          });
-      }
+      fetch("./data.json?v=" + Date.now(), { cache: "no-store" })
+        .then(r => {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
+        .then(data => {
+          $("loadingState").style.display = "none";
+          render(data);
+        })
+        .catch(err => {
+          console.error("[RF Macro] Failed to load data.json:", err);
+          if (!loadedFromInline) showError(err.message);
+        });
     });
 
   })();
