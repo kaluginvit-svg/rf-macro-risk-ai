@@ -3,7 +3,7 @@
   "run_id": 9,
   "risk_level": "orange",
   "total_score": 57,
-  "max_score": 299,
+  "max_score": 351,
   "thresholds": {
     "green":  {"min": 0,  "max": 19,  "label": "НИЗКИЙ",       "emoji": "🟢"},
     "yellow": {"min": 20, "max": 39,  "label": "СРЕДНИЙ",      "emoji": "🟡"},
