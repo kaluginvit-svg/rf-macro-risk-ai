@@ -1414,10 +1414,10 @@
   <!-- Inline report data — updated automatically by export_web_report() on each bot run -->
   <script id="report-data" type="application/json">
 {
-  "updated_at": "2026-06-28T18:00:00.000000+05:00",
+  "updated_at": "2026-06-28T21:00:00.000000+05:00",
   "run_id": 9,
-  "risk_level": "yellow",
-  "total_score": 23,
+  "risk_level": "orange",
+  "total_score": 57,
   "max_score": 299,
   "thresholds": {
     "green": {
@@ -1445,33 +1445,68 @@
       "emoji": "🔴"
     }
   },
-  "confidence": "medium",
+  "confidence": "high",
   "deposit_access_risk": "green",
   "deposit_access_score": 0,
-  "pulse_score": 23,
-  "pulse_direction": "better",
-  "pulse_summary": "Снижение с 60 до 23 очков: ЦБ снизил ставку, инфляция замедляется, ОФЗ-план выполнен на 99%",
+  "pulse_score": 57,
+  "pulse_direction": "flat",
+  "pulse_summary": "Риск стабилен на уровне оранжевого: бюджет под давлением, NPL растёт, инфляция ускоряется в июне",
   "triggered_criteria": [
     {
       "id": "budget_deficit_much_worse",
       "name": "Резкое ухудшение дефицита федерального бюджета",
-      "evidence": "Дефицит янв-апр = 5,877 трлн при плане 3,786 трлн (+55%); Дума расширила полномочия по заимствованиям [1]",
+      "evidence": "Дефицит янв-май = 6,01 трлн при плане 3,79 трлн (+59%); Дума расширила полномочия по заимствованиям [1]",
       "weight": 12,
+      "confidence": 0.95
+    },
+    {
+      "id": "new_sanctions_trade_finance",
+      "name": "Новые санкции с ухудшением расчётов/экспорта",
+      "evidence": "20-й пакет ЕС (апрель): танкеры, ЛНГ, WB банк; транзакционные издержки выросли в 2–5 раз [2]",
+      "weight": 8,
       "confidence": 0.85
+    },
+    {
+      "id": "banking_npl_systemic_rise",
+      "name": "Системный рост доли проблемных кредитов банковского сектора",
+      "evidence": "Доля проблемных кредитов юрлиц = 11,6% на март 2026 (порог: 8%); NPL близко к историческим максимумам [3]",
+      "weight": 8,
+      "confidence": 0.85
+    },
+    {
+      "id": "inflation_reacceleration",
+      "name": "Ускорение инфляции / срыв дезинфляции",
+      "evidence": "Годовая инфляция 5,85% на 22 июня — выше верхней границы прогноза ЦБ (5,5%); рост из-за топлива [4]",
+      "weight": 7,
+      "confidence": 0.8
     },
     {
       "id": "budget_emergency_amendments",
       "name": "Экстренные поправки в бюджет",
-      "evidence": "Путин 26 июня подписал закон о праве правительства превышать лимиты внутреннего долга [2]",
+      "evidence": "Путин 26 июня подписал закон: правительство вправе превышать лимиты внутреннего госдолга [5]",
       "weight": 6,
-      "confidence": 0.9
+      "confidence": 0.95
+    },
+    {
+      "id": "personal_bankruptcy_surge",
+      "name": "Резкий рост банкротств физических лиц",
+      "evidence": "568к процедур в 2025 = 47к/месяц >> порога 30к; рост 31,5% г/г; тренд продолжается в 2026 [6]",
+      "weight": 6,
+      "confidence": 0.8
     },
     {
       "id": "household_credit_stress",
-      "name": "Рост просрочки населения",
-      "evidence": "NPL необеспеченных кредитов 10,5% на 1 апреля, просрочка +33% г/г — 5-летний максимум [3]",
+      "name": "Рост просрочки населения / стресс кредитования",
+      "evidence": "Просрочка физлиц +33% г/г, 1,65 трлн руб.; NPL необеспеченных 13,1% — 5-летний максимум [3]",
       "weight": 5,
-      "confidence": 0.85
+      "confidence": 0.9
+    },
+    {
+      "id": "regional_finance_crisis",
+      "name": "Финансовый стресс регионов",
+      "evidence": "56 регионов с дефицитом в Q1 2026 (vs 46 в Q1 2025); кассовые разрывы; долги перенесены на 2030 [7]",
+      "weight": 5,
+      "confidence": 0.8
     }
   ],
   "criteria_status": [
@@ -1480,7 +1515,7 @@
       "status": "quiet",
       "delta": "flat",
       "fresh_signals_count": 0,
-      "new_sources_count": 1,
+      "new_sources_count": 0,
       "evidence_strength": "none"
     },
     {
@@ -1510,9 +1545,9 @@
     {
       "id": "new_fx_controls_severe",
       "status": "quiet",
-      "delta": "flat",
-      "fresh_signals_count": 0,
-      "new_sources_count": 0,
+      "delta": "better",
+      "fresh_signals_count": 1,
+      "new_sources_count": 1,
       "evidence_strength": "none"
     },
     {
@@ -1520,13 +1555,13 @@
       "status": "quiet",
       "delta": "flat",
       "fresh_signals_count": 0,
-      "new_sources_count": 0,
+      "new_sources_count": 1,
       "evidence_strength": "none"
     },
     {
       "id": "deposit_outflow_mass",
       "status": "watch",
-      "delta": "worse",
+      "delta": "flat",
       "fresh_signals_count": 1,
       "new_sources_count": 1,
       "evidence_strength": "low"
@@ -1551,8 +1586,8 @@
       "id": "payment_infrastructure_systemic_disruption",
       "status": "quiet",
       "delta": "flat",
-      "fresh_signals_count": 0,
-      "new_sources_count": 0,
+      "fresh_signals_count": 1,
+      "new_sources_count": 1,
       "evidence_strength": "none"
     },
     {
@@ -1575,15 +1610,15 @@
       "id": "budget_deficit_much_worse",
       "status": "triggered",
       "delta": "worse",
-      "fresh_signals_count": 2,
-      "new_sources_count": 2,
+      "fresh_signals_count": 3,
+      "new_sources_count": 3,
       "evidence_strength": "high"
     },
     {
       "id": "budget_emergency_amendments",
       "status": "triggered",
       "delta": "worse",
-      "fresh_signals_count": 1,
+      "fresh_signals_count": 2,
       "new_sources_count": 2,
       "evidence_strength": "high"
     },
@@ -1613,16 +1648,16 @@
     },
     {
       "id": "new_sanctions_trade_finance",
-      "status": "watch",
-      "delta": "flat",
-      "fresh_signals_count": 1,
-      "new_sources_count": 1,
-      "evidence_strength": "low"
+      "status": "triggered",
+      "delta": "worse",
+      "fresh_signals_count": 2,
+      "new_sources_count": 2,
+      "evidence_strength": "high"
     },
     {
       "id": "cbr_repo_volume_spike",
       "status": "quiet",
-      "delta": "better",
+      "delta": "flat",
       "fresh_signals_count": 0,
       "new_sources_count": 0,
       "evidence_strength": "none"
@@ -1631,17 +1666,17 @@
       "id": "cash_fx_premium_spike",
       "status": "quiet",
       "delta": "flat",
-      "fresh_signals_count": 0,
-      "new_sources_count": 0,
+      "fresh_signals_count": 1,
+      "new_sources_count": 1,
       "evidence_strength": "none"
     },
     {
       "id": "banking_npl_systemic_rise",
-      "status": "watch",
+      "status": "triggered",
       "delta": "worse",
-      "fresh_signals_count": 1,
-      "new_sources_count": 1,
-      "evidence_strength": "low"
+      "fresh_signals_count": 2,
+      "new_sources_count": 2,
+      "evidence_strength": "high"
     },
     {
       "id": "deposit_rate_spread_spike",
@@ -1654,41 +1689,41 @@
     {
       "id": "ofz_yield_curve_inversion_spike",
       "status": "quiet",
-      "delta": "better",
-      "fresh_signals_count": 0,
-      "new_sources_count": 0,
+      "delta": "flat",
+      "fresh_signals_count": 1,
+      "new_sources_count": 1,
       "evidence_strength": "none"
     },
     {
       "id": "interbank_liquidity_stress",
       "status": "quiet",
       "delta": "better",
-      "fresh_signals_count": 0,
-      "new_sources_count": 0,
+      "fresh_signals_count": 1,
+      "new_sources_count": 1,
       "evidence_strength": "none"
     },
     {
       "id": "inflation_reacceleration",
-      "status": "watch",
-      "delta": "better",
+      "status": "triggered",
+      "delta": "worse",
       "fresh_signals_count": 2,
       "new_sources_count": 2,
-      "evidence_strength": "low"
+      "evidence_strength": "high"
     },
     {
       "id": "ruble_depreciation_shock",
-      "status": "quiet",
-      "delta": "flat",
+      "status": "watch",
+      "delta": "worse",
       "fresh_signals_count": 1,
       "new_sources_count": 1,
-      "evidence_strength": "none"
+      "evidence_strength": "low"
     },
     {
       "id": "ofz_market_stress",
       "status": "watch",
-      "delta": "flat",
-      "fresh_signals_count": 1,
-      "new_sources_count": 1,
+      "delta": "worse",
+      "fresh_signals_count": 2,
+      "new_sources_count": 2,
       "evidence_strength": "low"
     },
     {
@@ -1709,26 +1744,26 @@
     },
     {
       "id": "labor_market_deterioration",
-      "status": "quiet",
-      "delta": "better",
-      "fresh_signals_count": 1,
-      "new_sources_count": 1,
-      "evidence_strength": "none"
-    },
-    {
-      "id": "regional_finance_crisis",
       "status": "watch",
-      "delta": "better",
+      "delta": "worse",
       "fresh_signals_count": 1,
       "new_sources_count": 1,
       "evidence_strength": "low"
     },
     {
+      "id": "regional_finance_crisis",
+      "status": "triggered",
+      "delta": "worse",
+      "fresh_signals_count": 2,
+      "new_sources_count": 2,
+      "evidence_strength": "medium"
+    },
+    {
       "id": "external_trade_deterioration",
       "status": "watch",
-      "delta": "better",
-      "fresh_signals_count": 1,
-      "new_sources_count": 1,
+      "delta": "worse",
+      "fresh_signals_count": 2,
+      "new_sources_count": 2,
       "evidence_strength": "low"
     },
     {
@@ -1741,11 +1776,11 @@
     },
     {
       "id": "personal_bankruptcy_surge",
-      "status": "watch",
+      "status": "triggered",
       "delta": "worse",
-      "fresh_signals_count": 1,
-      "new_sources_count": 1,
-      "evidence_strength": "low"
+      "fresh_signals_count": 2,
+      "new_sources_count": 2,
+      "evidence_strength": "medium"
     },
     {
       "id": "rzd_freight_collapse",
@@ -1757,11 +1792,11 @@
     },
     {
       "id": "retail_sales_real_decline",
-      "status": "quiet",
-      "delta": "flat",
-      "fresh_signals_count": 0,
-      "new_sources_count": 0,
-      "evidence_strength": "none"
+      "status": "watch",
+      "delta": "worse",
+      "fresh_signals_count": 1,
+      "new_sources_count": 1,
+      "evidence_strength": "low"
     },
     {
       "id": "industrial_output_contraction",
@@ -1772,38 +1807,38 @@
       "evidence_strength": "none"
     }
   ],
-  "summary": "Риск снизился с оранжевого до жёлтого: ЦБ снижает ставку, инфляция тормозит, ОФЗ-аукционы выполнены на 99%. Ключевые тревоги — бюджетный дефицит и рост NPL.",
-  "recommendation": "Держать вклады в топ-10 банках. Следить за ФНБ и дефицитом бюджета во II полугодии.",
+  "summary": "Риск стабилен на оранжевом: бюджетный дефицит 6 трлн за 5 мес., NPL банков у максимума, инфляция выше прогноза ЦБ. Позитив — ставка снижается, ОФЗ-рынок держится.",
+  "recommendation": "Вклады в топ-10 банках безопасны. Ключевой риск II полугодия — разворот ЦБ вверх при дальнейшем росте инфляции.",
   "asset_guidance": [
-    "Вклады в топ-10 банках безопасны: ставки снижаются, лучше зафиксировать на 3-6 мес. [4]",
-    "Наличные: умеренный запас уместен — спрос на кэш растёт из-за снижения ставок по вкладам [5]",
-    "ОФЗ: рынок стабилен, план Q2 выполнен на 99%; риск роста дефицита во II полугодии [6]"
+    "Вклады: фиксируйте ставку на 3–6 мес. — цикл снижения продолжается, доходность будет падать [8]",
+    "Наличность: умеренный запас разумен — спрос на кэш растёт, ВВП Q1 -0,2% [9]",
+    "ОФЗ: аукцион 24 июня отменён из-за волатильности, длинные бумаги под давлением; осторожно [10]"
   ],
   "positive_trends": [
-    "ЦБ снизил ставку до 14,25%: цикл смягчения продолжается, инфляционные ожидания падают [7]",
-    "Рынок ОФЗ стабилен: Минфин привлёк 1,495 трлн руб. в Q2 при плане 1,5 трлн [6]"
+    "ЦБ снизил ставку до 14,25%, продолжает цикл смягчения; RUONIA в норме (-18 б.п. к ключевой) [8]",
+    "Рынок труда на историческом минимуме безработицы 2,1–2,5%; промпроизводство +0,7% г/г [11]"
   ],
   "negative_trends": [
-    "Бюджетный дефицит 5,877 трлн за янв-апр (+55% к плану); расширены полномочия по заимствованиям [1][2]",
-    "NPL необеспеченных кредитов достиг 10,5% — 5-летний максимум; просрочка физлиц +33% г/г [3]"
+    "Инфляция 5,85% на 22 июня ускоряется из-за топлива — уже выше прогноза ЦБ 4,5–5,5% [4]",
+    "Дефицит бюджета 6 трлн за 5 мес. (+59% к плану); 56 регионов с дефицитом в Q1 2026 [1][7]"
   ],
   "key_risks_6m": [
-    "Истощение ФНБ: ликвидная часть 3,63 трлн — близко к критическому порогу 3,5 трлн [8]",
-    "Бюджетный дефицит может превысить 80% плана к осени при стагнации доходов [1]"
+    "ФНБ: ликвидная часть 3,6 трлн — вблизи критического порога 3,5 трлн; расходование продолжается [12]",
+    "Разворот ЦБ: если инфляция 6%+ закрепится — ЦБ остановит цикл снижения ставки [4]"
   ],
   "watchlist": [
-    "ФНБ ликвидная часть: порог 3,5 трлн — следующая публикация Минфина в июле",
-    "Дефицит бюджета нарастающим итогом: данные за май-июнь от Минфина",
-    "NPL банковского сектора: обзор ЦБ по итогам Q2 2026"
+    "Инфляция июль 2026: закрепление выше 6% — сигнал разворота ЦБ",
+    "ФНБ ликвидная часть: публикация Минфина за июнь (ожидается в июле)",
+    "Аукционы ОФЗ июль 2026: спрос после отмены 24 июня"
   ],
   "sources": [
     {
       "id": 1,
-      "url": "https://minfin.gov.ru/ru/press-center/?id_4=40345-predvaritelnaya_otsenka_ispolneniya_federalnogo_byudzheta_za_yanvar-aprel_2026_goda"
+      "url": "https://www.interfax.ru/business/1094374"
     },
     {
       "id": 2,
-      "url": "https://rg.ru/2026/06/26/putin-podpisal-zakon-o-vnesenii-izmenenij-v-biudzhetnyj-kodeks.html"
+      "url": "https://www.vedomosti.ru/politics/articles/2026/04/23/1192623-20-i-paket-sanktsii"
     },
     {
       "id": 3,
@@ -1811,29 +1846,45 @@
     },
     {
       "id": 4,
-      "url": "https://www.banki.ru/news/daytheme/?id=11025119"
+      "url": "https://www.interfax.ru/business/1098093"
     },
     {
       "id": 5,
-      "url": "https://www.kommersant.ru/doc/8606872"
+      "url": "https://rg.ru/2026/06/26/putin-podpisal-zakon-o-vnesenii-izmenenij-v-biudzhetnyj-kodeks.html"
     },
     {
       "id": 6,
-      "url": "https://www.interfax.ru/business/1097806"
+      "url": "https://www.vedomosti.ru/economics/news/2026/02/24/1178507-kolichestvo-bankrotstv"
     },
     {
       "id": 7,
-      "url": "https://www.cbr.ru/press/keypr/"
+      "url": "https://www.vedomosti.ru/economics/articles/2026/06/16/1206096-schetnaya-palata-otmetila-rost-chisla-regionov-s-defitsitom-byudzheta"
     },
     {
       "id": 8,
-      "url": "https://www.interfax.ru/business/1068516"
+      "url": "https://www.cbr.ru/press/keypr/"
+    },
+    {
+      "id": 9,
+      "url": "https://www.vedomosti.ru/economics/news/2026/06/17/1206701-rosstat-podtverdil"
+    },
+    {
+      "id": 10,
+      "url": "https://www.kommersant.ru/doc/8763086"
+    },
+    {
+      "id": 11,
+      "url": "https://rosstat.gov.ru/storage/mediabank/75_27-05-2026.html"
+    },
+    {
+      "id": 12,
+      "url": "https://minfin.gov.ru/ru/press-center/?id_4=40343-informatsionnoe_soobshchenie_o_rezultatakh_razmeshcheniya_sredstv_fonda_natsionalnogo_blagosostoyaniya"
     }
   ],
   "stats": {
-    "steps": 12,
-    "tool_calls": 12,
-    "time_seconds": 480,
+    "steps": 37,
+    "tool_calls": 37,
+    "time_seconds": 1800,
     "cost_usd": 0.0,
     "model": "claude-sonnet-4-6 (Claude Code / subscription)"
   },
@@ -1858,27 +1909,27 @@
     },
     {
       "run_id": 4,
-      "timestamp": "2026-05-23T20:00:00.000000+05:00",
-      "risk_level": "green",
+      "timestamp": "2026-05-23T23:18:41.820128+05:00",
+      "risk_level": "unknown",
       "total_score": 0
     },
     {
       "run_id": 5,
-      "timestamp": "2026-05-23T21:00:00.000000+05:00",
-      "risk_level": "yellow",
-      "total_score": 28
+      "timestamp": "2026-05-23T23:35:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 43
     },
     {
       "run_id": 6,
-      "timestamp": "2026-05-24T12:00:00.000000+05:00",
-      "risk_level": "yellow",
-      "total_score": 28
+      "timestamp": "2026-05-29T12:00:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 56
     },
     {
       "run_id": 7,
-      "timestamp": "2026-05-24T13:00:00.000000+05:00",
-      "risk_level": "yellow",
-      "total_score": 28
+      "timestamp": "2026-06-05T00:00:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 56
     },
     {
       "run_id": 8,
@@ -1888,9 +1939,9 @@
     },
     {
       "run_id": 9,
-      "timestamp": "2026-06-28T18:00:00.000000+05:00",
-      "risk_level": "yellow",
-      "total_score": 23
+      "timestamp": "2026-06-28T21:00:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 57
     }
   ],
   "criteria_registry": [
@@ -2015,7 +2066,7 @@
     },
     {
       "id": "new_sanctions_trade_finance",
-      "name": "Новые санкции с эффектом на экспорт/расчёты",
+      "name": "Новые санкции с ухудшением расчётов/экспорта",
       "search_query": "санкции введены расчёты экспорт 2026",
       "weight": 8,
       "speed": "medium"
