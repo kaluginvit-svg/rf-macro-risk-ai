@@ -1,207 +1,385 @@
 {
-  "updated_at": "2026-06-28T21:00:00.000000+05:00",
-  "run_id": 9,
-  "risk_level": "orange",
-  "total_score": 57,
+  "updated_at": "2026-08-26T12:00:11.223529+05:00",
+  "run_id": 10,
+  "risk_level": "unknown",
+  "total_score": 0,
   "max_score": 351,
   "thresholds": {
-    "green":  {"min": 0,  "max": 19,  "label": "НИЗКИЙ",       "emoji": "🟢"},
-    "yellow": {"min": 20, "max": 39,  "label": "СРЕДНИЙ",      "emoji": "🟡"},
-    "orange": {"min": 40, "max": 69,  "label": "СУЩЕСТВЕННЫЙ", "emoji": "🟠"},
-    "red":    {"min": 70, "max": 999, "label": "ВЫСОКИЙ",      "emoji": "🔴"}
+    "green": {
+      "min": 0,
+      "max": 19,
+      "label": "НИЗКИЙ",
+      "emoji": "🟢"
+    },
+    "yellow": {
+      "min": 20,
+      "max": 39,
+      "label": "СРЕДНИЙ",
+      "emoji": "🟡"
+    },
+    "orange": {
+      "min": 40,
+      "max": 69,
+      "label": "СУЩЕСТВЕННЫЙ",
+      "emoji": "🟠"
+    },
+    "red": {
+      "min": 70,
+      "max": 999,
+      "label": "ВЫСОКИЙ",
+      "emoji": "🔴"
+    },
+    "black": {
+      "min": 0,
+      "max": 999,
+      "label": "АВАРИЙНЫЙ",
+      "emoji": "⚫"
+    }
   },
-  "confidence": "high",
+  "confidence": null,
   "deposit_access_risk": "green",
   "deposit_access_score": 0,
-  "pulse_score": 57,
+  "pulse_score": 0,
   "pulse_direction": "flat",
-  "pulse_summary": "Риск стабилен на уровне оранжевого: бюджет под давлением, NPL растёт, инфляция ускоряется в июне",
-  "triggered_criteria": [
+  "pulse_summary": "",
+  "triggered_criteria": [],
+  "criteria_status": [],
+  "summary": "",
+  "recommendation": "",
+  "positive_trends": [],
+  "negative_trends": [],
+  "key_risks_6m": [],
+  "asset_guidance": [],
+  "watchlist": [],
+  "sources": [],
+  "stats": {
+    "steps": 0,
+    "tool_calls": 0,
+    "time_seconds": 2.331483,
+    "cost_usd": 0.0,
+    "model": "anthropic:stealth/ox-alpha"
+  },
+  "history": [
+    {
+      "run_id": 1,
+      "timestamp": "2026-05-23T19:06:11.440388+05:00",
+      "risk_level": "unknown",
+      "total_score": 0
+    },
+    {
+      "run_id": 2,
+      "timestamp": "2026-05-23T19:07:18.778776+05:00",
+      "risk_level": "unknown",
+      "total_score": 0
+    },
+    {
+      "run_id": 3,
+      "timestamp": "2026-05-23T19:07:53.039584+05:00",
+      "risk_level": "green",
+      "total_score": 0
+    },
+    {
+      "run_id": 4,
+      "timestamp": "2026-05-23T23:18:41.820128+05:00",
+      "risk_level": "unknown",
+      "total_score": 0
+    },
+    {
+      "run_id": 5,
+      "timestamp": "2026-05-23T23:35:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 43
+    },
+    {
+      "run_id": 6,
+      "timestamp": "2026-05-29T12:00:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 56
+    },
+    {
+      "run_id": 7,
+      "timestamp": "2026-06-05T00:00:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 56
+    },
+    {
+      "run_id": 8,
+      "timestamp": "2026-06-11T12:00:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 60
+    },
+    {
+      "run_id": 9,
+      "timestamp": "2026-06-28T21:00:00.000000+05:00",
+      "risk_level": "orange",
+      "total_score": 57
+    },
+    {
+      "run_id": 10,
+      "timestamp": "2026-08-26T12:00:11.221534+05:00",
+      "risk_level": "unknown",
+      "total_score": 0
+    }
+  ],
+  "criteria_registry": [
+    {
+      "id": "force_majeure_state_event",
+      "name": "Форс-мажорное государственное событие (чёрный лебедь)",
+      "search_query": "site:kremlin.ru OR site:rg.ru военное положение OR расширенный призыв объявлен OR чрезвычайное положение введено OR государственный переворот Россия 2026",
+      "weight": 40,
+      "speed": "fast"
+    },
+    {
+      "id": "sovereign_domestic_debt_event",
+      "name": "Событие по внутреннему долгу РФ (ОФЗ): реструктуризация/перенос выплат/принудительный обмен",
+      "search_query": "ОФЗ реструктуризация перенос выплат принудительный обмен постановление 2026",
+      "weight": 24,
+      "speed": "fast"
+    },
+    {
+      "id": "bank_holidays_national",
+      "name": "Экстренная приостановка расчётов/«банковские каникулы» на уровне государства/ЦБ",
+      "search_query": "банковские каникулы приостановка расчетов распоряжение ЦБ 2026",
+      "weight": 20,
+      "speed": "fast"
+    },
+    {
+      "id": "cb_emergency_rate_hike",
+      "name": "Внеплановое экстренное повышение ключевой ставки ЦБ",
+      "search_query": "ЦБ внеплановое заседание повышение ключевой ставки экстренное решение 2026",
+      "weight": 15,
+      "speed": "fast"
+    },
+    {
+      "id": "new_fx_controls_severe",
+      "name": "Резкое ужесточение валютного контроля/ограничений (новые меры, не продление)",
+      "search_query": "новые валютные ограничения ужесточение переводы за рубеж запрет 2026",
+      "weight": 9,
+      "speed": "fast"
+    },
+    {
+      "id": "systemic_bank_resolution",
+      "name": "Санация/временная администрация в крупном или системно значимом банке",
+      "search_query": "site:cbr.ru временная администрация санация системно значимый банк 2026",
+      "weight": 12,
+      "speed": "fast"
+    },
+    {
+      "id": "deposit_outflow_mass",
+      "name": "Массовый отток вкладов физлиц из банковской системы",
+      "search_query": "вклады физических лиц отток сокращение банки ЦБ статистика 2026",
+      "weight": 12,
+      "speed": "fast"
+    },
+    {
+      "id": "moex_trading_halt",
+      "name": "Приостановка биржевых торгов на Мосбирже по решению регулятора/биржи",
+      "search_query": "Московская биржа приостановка остановка торгов решение ЦБ регулятор 2026",
+      "weight": 15,
+      "speed": "fast"
+    },
+    {
+      "id": "bank_license_chain_or_large",
+      "name": "Отзыв лицензии у крупного банка или цепочка отзывов за короткий срок",
+      "search_query": "site:cbr.ru отзыв лицензии банк крупный серия отзывов 2026",
+      "weight": 9,
+      "speed": "fast"
+    },
+    {
+      "id": "payment_infrastructure_systemic_disruption",
+      "name": "Широкомасштабные перебои/ограничения платёжной инфраструктуры (СБП/карты/клиринг)",
+      "search_query": "НСПК СБП массовый сбой ограничение операций ЦБ 2026",
+      "weight": 9,
+      "speed": "fast"
+    },
+    {
+      "id": "cash_m0_surge",
+      "name": "Беспрецедентный рост наличных в обращении (M0) — панический вынос из банков",
+      "search_query": "наличные деньги в обращении M0 рост денежная база ЦБ статистика снятие наличных банки 2026",
+      "weight": 6,
+      "speed": "fast"
+    },
+    {
+      "id": "cb_emergency_actions_fin_stability",
+      "name": "Экстренные действия/заявления ЦБ по финстабильности вне календаря",
+      "search_query": "site:cbr.ru внеплановое заседание финансовая стабильность меры 2026",
+      "weight": 10,
+      "speed": "fast"
+    },
     {
       "id": "budget_deficit_much_worse",
-      "name": "Резкое ухудшение дефицита федерального бюджета",
-      "evidence": "Дефицит янв-май = 6,01 трлн при плане 3,79 трлн (+59%); Дума расширила полномочия по заимствованиям [1]",
+      "name": "Резкое ухудшение дефицита федерального бюджета (превышение годового плана на 30%+)",
+      "search_query": "Минфин дефицит федерального бюджета нарастающим итогом превышение плана заимствования 2026",
       "weight": 12,
-      "confidence": 0.95
-    },
-    {
-      "id": "new_sanctions_trade_finance",
-      "name": "Новые санкции с ухудшением расчётов/экспорта",
-      "evidence": "20-й пакет ЕС (апрель): танкеры, ЛНГ, WB банк; транзакционные издержки выросли в 2–5 раз [2]",
-      "weight": 8,
-      "confidence": 0.85
-    },
-    {
-      "id": "banking_npl_systemic_rise",
-      "name": "Системный рост доли проблемных кредитов банковского сектора",
-      "evidence": "Доля проблемных кредитов юрлиц = 11,6% на март 2026 (порог: 8%); NPL близко к историческим максимумам [3]",
-      "weight": 8,
-      "confidence": 0.85
-    },
-    {
-      "id": "inflation_reacceleration",
-      "name": "Ускорение инфляции / срыв дезинфляции",
-      "evidence": "Годовая инфляция 5,85% на 22 июня — выше верхней границы прогноза ЦБ (5,5%); рост из-за топлива [4]",
-      "weight": 7,
-      "confidence": 0.80
+      "speed": "medium"
     },
     {
       "id": "budget_emergency_amendments",
-      "name": "Экстренные поправки в бюджет",
-      "evidence": "Путин 26 июня подписал закон: правительство вправе превышать лимиты внутреннего госдолга [5]",
+      "name": "Экстренные поправки в бюджет/резкое ухудшение параметров (дефицит, заимствования)",
+      "search_query": "экстренные поправки в федеральный бюджет рост дефицита заимствования 2026",
       "weight": 6,
-      "confidence": 0.95
+      "speed": "fast"
+    },
+    {
+      "id": "nwf_liquid_depletion",
+      "name": "Устойчивое сокращение ликвидной части ФНБ (Фонда национального благосостояния)",
+      "search_query": "Минфин ФНБ ликвидная часть Фонд национального благосостояния объём снижение данные 2026",
+      "weight": 9,
+      "speed": "slow"
+    },
+    {
+      "id": "corporate_default_wave",
+      "name": "Волна корпоративных дефолтов/реструктуризаций (облигации/кредиты) в нескольких секторах",
+      "search_query": "дефолт по облигациям реструктуризация долга рост просрочки компаний Россия 2026",
+      "weight": 8,
+      "speed": "medium"
+    },
+    {
+      "id": "wage_arrears",
+      "name": "Рост задолженности по зарплате/задержки выплат в реальном секторе",
+      "search_query": "задержка зарплаты рост задолженности по зарплате регионы отрасли 2026",
+      "weight": 5,
+      "speed": "medium"
+    },
+    {
+      "id": "new_sanctions_trade_finance",
+      "name": "Новые санкции, ухудшающие экспорт/финансы/платежи (фактический эффект)",
+      "search_query": "новые санкции введены ухудшение расчетов экспорт страхование судоходство банки 2026",
+      "weight": 8,
+      "speed": "medium"
+    },
+    {
+      "id": "cbr_repo_volume_spike",
+      "name": "Резкий рост объёма операций РЕПО банков с ЦБ (кредитор последней инстанции)",
+      "search_query": "site:cbr.ru операции РЕПО объём банки ликвидность открытый рынок 2026",
+      "weight": 10,
+      "speed": "fast"
+    },
+    {
+      "id": "cash_fx_premium_spike",
+      "name": "Аномальный спред наличного курса USD/EUR в банках над официальным курсом ММВБ/ЦБ",
+      "search_query": "курс доллара евро наличный банки продажа спред официальный курс ЦБ разница 2026",
+      "weight": 10,
+      "speed": "fast"
+    },
+    {
+      "id": "banking_npl_systemic_rise",
+      "name": "Системный рост доли проблемных кредитов (NPL) банковского сектора",
+      "search_query": "ЦБ обзор банковского сектора доля просроченных кредитов NPL рост 2026",
+      "weight": 8,
+      "speed": "medium"
+    },
+    {
+      "id": "deposit_rate_spread_spike",
+      "name": "Аномальный спред ставок по вкладам над ключевой ставкой ЦБ",
+      "search_query": "ставки по вкладам банки топ повышение максимальная доходность депозит краткосрочный 2026",
+      "weight": 7,
+      "speed": "fast"
+    },
+    {
+      "id": "ofz_yield_curve_inversion_spike",
+      "name": "Резкое углубление инверсии кривой доходности ОФЗ",
+      "search_query": "кривая доходности ОФЗ инверсия спред короткие длинные резкий рост доходность 2026",
+      "weight": 6,
+      "speed": "fast"
+    },
+    {
+      "id": "interbank_liquidity_stress",
+      "name": "Стресс ликвидности: устойчивый рост ставок межбанка/спредов относительно ключевой",
+      "search_query": "RUONIA спред к ключевой ставке стресс ликвидности 2026",
+      "weight": 7,
+      "speed": "medium"
+    },
+    {
+      "id": "inflation_reacceleration",
+      "name": "Ускорение инфляции/инфляционных ожиданий и/или признаки срыва дезинфляции",
+      "search_query": "Росстат инфляция ускорилась инфляционные ожидания ЦБ 2026",
+      "weight": 7,
+      "speed": "medium"
+    },
+    {
+      "id": "ruble_depreciation_shock",
+      "name": "Резкое ослабление рубля (шоковое движение) и рост «двухкурсовости»",
+      "search_query": "рубль резко ослаб курс разрыв наличный и официальный спред 2026",
+      "weight": 9,
+      "speed": "fast"
+    },
+    {
+      "id": "ofz_market_stress",
+      "name": "Стресс на рынке госдолга: провалы аукционов/рост доходностей/ухудшение спроса",
+      "search_query": "Минфин аукцион ОФЗ провал слабый спрос рост доходности 2026",
+      "weight": 7,
+      "speed": "medium"
+    },
+    {
+      "id": "household_credit_stress",
+      "name": "Рост просрочки населения/стресс потребкредитования (карты, МФО, кредиты)",
+      "search_query": "рост просрочки по кредитам населения банки МФО ужесточение выдачи 2026",
+      "weight": 5,
+      "speed": "medium"
+    },
+    {
+      "id": "mortgage_real_estate_stress",
+      "name": "Стресс ипотеки/недвижимости: спад выдач, рост просрочки, проблемы застройщиков",
+      "search_query": "(ипотека OR выдачи ипотеки OR просрочка ипотеки) (падение OR спад OR рост просрочки) Россия 2026",
+      "weight": 5,
+      "speed": "medium"
+    },
+    {
+      "id": "labor_market_deterioration",
+      "name": "Ухудшение рынка труда: рост безработицы/скрытой занятости/сокращения",
+      "search_query": "рост безработицы сокращения неполная занятость предприятия Россия 2026",
+      "weight": 5,
+      "speed": "medium"
+    },
+    {
+      "id": "regional_finance_crisis",
+      "name": "Финансовый стресс регионов/муниципалитетов: долги, секвестры, кассовые разрывы",
+      "search_query": "регионы секвестр бюджета кассовый разрыв рост долга муниципалитет 2026",
+      "weight": 5,
+      "speed": "medium"
+    },
+    {
+      "id": "external_trade_deterioration",
+      "name": "Ухудшение внешнеторговых условий: падение экспортной выручки/трудности расчётов/логистики",
+      "search_query": "падение экспортной выручки проблемы расчетов логистика внешняя торговля Россия 2026",
+      "weight": 5,
+      "speed": "medium"
+    },
+    {
+      "id": "oil_price_shock_urals",
+      "name": "Негативный шок по нефти/экспортным ценам (Urals/дисконт/экспортные ограничения)",
+      "search_query": "Urals цена упала дисконт вырос экспорт нефти ограничения флот страхование 2026",
+      "weight": 8,
+      "speed": "medium"
     },
     {
       "id": "personal_bankruptcy_surge",
       "name": "Резкий рост банкротств физических лиц",
-      "evidence": "568к процедур в 2025 = 47к/месяц >> порога 30к; рост 31,5% г/г; тренд продолжается в 2026 [6]",
+      "search_query": "банкротство физических лиц Федресурс статистика рост число процедур 2026",
       "weight": 6,
-      "confidence": 0.80
+      "speed": "slow"
     },
     {
-      "id": "household_credit_stress",
-      "name": "Рост просрочки населения / стресс кредитования",
-      "evidence": "Просрочка физлиц +33% г/г, 1,65 трлн руб.; NPL необеспеченных 13,1% — 5-летний максимум [3]",
-      "weight": 5,
-      "confidence": 0.90
+      "id": "rzd_freight_collapse",
+      "name": "Устойчивое падение грузооборота РЖД",
+      "search_query": "РЖД грузооборот снижение падение статистика данные месяц 2026",
+      "weight": 6,
+      "speed": "slow"
     },
     {
-      "id": "regional_finance_crisis",
-      "name": "Финансовый стресс регионов",
-      "evidence": "56 регионов с дефицитом в Q1 2026 (vs 46 в Q1 2025); кассовые разрывы; долги перенесены на 2030 [7]",
-      "weight": 5,
-      "confidence": 0.80
+      "id": "retail_sales_real_decline",
+      "name": "Устойчивое падение реальных розничных продаж (Росстат)",
+      "search_query": "Росстат розничная торговля оборот снижение реальный падение данные 2026",
+      "weight": 3,
+      "speed": "slow"
+    },
+    {
+      "id": "industrial_output_contraction",
+      "name": "Устойчивое сокращение промышленного производства (Росстат)",
+      "search_query": "Росстат индекс промышленного производства ИПП снижение сокращение данные 2026",
+      "weight": 3,
+      "speed": "slow"
     }
-  ],
-  "criteria_status": [
-    {"id": "force_majeure_state_event",                  "status": "quiet",      "delta": "flat",   "fresh_signals_count": 0, "new_sources_count": 0, "evidence_strength": "none"},
-    {"id": "sovereign_domestic_debt_event",              "status": "quiet",      "delta": "flat",   "fresh_signals_count": 0, "new_sources_count": 0, "evidence_strength": "none"},
-    {"id": "bank_holidays_national",                     "status": "quiet",      "delta": "flat",   "fresh_signals_count": 0, "new_sources_count": 0, "evidence_strength": "none"},
-    {"id": "cb_emergency_rate_hike",                     "status": "quiet",      "delta": "better", "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "none"},
-    {"id": "new_fx_controls_severe",                     "status": "quiet",      "delta": "better", "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "none"},
-    {"id": "systemic_bank_resolution",                   "status": "quiet",      "delta": "flat",   "fresh_signals_count": 0, "new_sources_count": 1, "evidence_strength": "none"},
-    {"id": "deposit_outflow_mass",                       "status": "watch",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "moex_trading_halt",                          "status": "quiet",      "delta": "flat",   "fresh_signals_count": 0, "new_sources_count": 0, "evidence_strength": "none"},
-    {"id": "bank_license_chain_or_large",                "status": "quiet",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "payment_infrastructure_systemic_disruption", "status": "quiet",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "none"},
-    {"id": "cash_m0_surge",                              "status": "watch",      "delta": "worse",  "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "cb_emergency_actions_fin_stability",         "status": "quiet",      "delta": "better", "fresh_signals_count": 0, "new_sources_count": 0, "evidence_strength": "none"},
-    {"id": "budget_deficit_much_worse",                  "status": "triggered",  "delta": "worse",  "fresh_signals_count": 3, "new_sources_count": 3, "evidence_strength": "high"},
-    {"id": "budget_emergency_amendments",                "status": "triggered",  "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "high"},
-    {"id": "nwf_liquid_depletion",                       "status": "warming_up", "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "medium"},
-    {"id": "corporate_default_wave",                     "status": "watch",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "wage_arrears",                               "status": "watch",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "new_sanctions_trade_finance",                "status": "triggered",  "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "high"},
-    {"id": "cbr_repo_volume_spike",                      "status": "quiet",      "delta": "flat",   "fresh_signals_count": 0, "new_sources_count": 0, "evidence_strength": "none"},
-    {"id": "cash_fx_premium_spike",                      "status": "quiet",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "none"},
-    {"id": "banking_npl_systemic_rise",                  "status": "triggered",  "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "high"},
-    {"id": "deposit_rate_spread_spike",                  "status": "quiet",      "delta": "better", "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "none"},
-    {"id": "ofz_yield_curve_inversion_spike",            "status": "quiet",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "none"},
-    {"id": "interbank_liquidity_stress",                 "status": "quiet",      "delta": "better", "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "none"},
-    {"id": "inflation_reacceleration",                   "status": "triggered",  "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "high"},
-    {"id": "ruble_depreciation_shock",                   "status": "watch",      "delta": "worse",  "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "ofz_market_stress",                          "status": "watch",      "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "low"},
-    {"id": "household_credit_stress",                    "status": "triggered",  "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "high"},
-    {"id": "mortgage_real_estate_stress",                "status": "warming_up", "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "medium"},
-    {"id": "labor_market_deterioration",                 "status": "watch",      "delta": "worse",  "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "regional_finance_crisis",                    "status": "triggered",  "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "medium"},
-    {"id": "external_trade_deterioration",               "status": "watch",      "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "low"},
-    {"id": "oil_price_shock_urals",                      "status": "watch",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "personal_bankruptcy_surge",                  "status": "triggered",  "delta": "worse",  "fresh_signals_count": 2, "new_sources_count": 2, "evidence_strength": "medium"},
-    {"id": "rzd_freight_collapse",                       "status": "watch",      "delta": "better", "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "retail_sales_real_decline",                  "status": "watch",      "delta": "worse",  "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "low"},
-    {"id": "industrial_output_contraction",              "status": "quiet",      "delta": "flat",   "fresh_signals_count": 1, "new_sources_count": 1, "evidence_strength": "none"}
-  ],
-  "summary": "Риск стабилен на оранжевом: бюджетный дефицит 6 трлн за 5 мес., NPL банков у максимума, инфляция выше прогноза ЦБ. Позитив — ставка снижается, ОФЗ-рынок держится.",
-  "recommendation": "Вклады в топ-10 банках безопасны. Ключевой риск II полугодия — разворот ЦБ вверх при дальнейшем росте инфляции.",
-  "asset_guidance": [
-    "Вклады: фиксируйте ставку на 3–6 мес. — цикл снижения продолжается, доходность будет падать [8]",
-    "Наличность: умеренный запас разумен — спрос на кэш растёт, ВВП Q1 -0,2% [9]",
-    "ОФЗ: аукцион 24 июня отменён из-за волатильности, длинные бумаги под давлением; осторожно [10]"
-  ],
-  "positive_trends": [
-    "ЦБ снизил ставку до 14,25%, продолжает цикл смягчения; RUONIA в норме (-18 б.п. к ключевой) [8]",
-    "Рынок труда на историческом минимуме безработицы 2,1–2,5%; промпроизводство +0,7% г/г [11]"
-  ],
-  "negative_trends": [
-    "Инфляция 5,85% на 22 июня ускоряется из-за топлива — уже выше прогноза ЦБ 4,5–5,5% [4]",
-    "Дефицит бюджета 6 трлн за 5 мес. (+59% к плану); 56 регионов с дефицитом в Q1 2026 [1][7]"
-  ],
-  "key_risks_6m": [
-    "ФНБ: ликвидная часть 3,6 трлн — вблизи критического порога 3,5 трлн; расходование продолжается [12]",
-    "Разворот ЦБ: если инфляция 6%+ закрепится — ЦБ остановит цикл снижения ставки [4]"
-  ],
-  "watchlist": [
-    "Инфляция июль 2026: закрепление выше 6% — сигнал разворота ЦБ",
-    "ФНБ ликвидная часть: публикация Минфина за июнь (ожидается в июле)",
-    "Аукционы ОФЗ июль 2026: спрос после отмены 24 июня"
-  ],
-  "sources": [
-    {"id": 1,  "url": "https://www.interfax.ru/business/1094374"},
-    {"id": 2,  "url": "https://www.vedomosti.ru/politics/articles/2026/04/23/1192623-20-i-paket-sanktsii"},
-    {"id": 3,  "url": "https://www.cbr.ru/analytics/finstab/ofs/4q_2025_1q_2026/"},
-    {"id": 4,  "url": "https://www.interfax.ru/business/1098093"},
-    {"id": 5,  "url": "https://rg.ru/2026/06/26/putin-podpisal-zakon-o-vnesenii-izmenenij-v-biudzhetnyj-kodeks.html"},
-    {"id": 6,  "url": "https://www.vedomosti.ru/economics/news/2026/02/24/1178507-kolichestvo-bankrotstv"},
-    {"id": 7,  "url": "https://www.vedomosti.ru/economics/articles/2026/06/16/1206096-schetnaya-palata-otmetila-rost-chisla-regionov-s-defitsitom-byudzheta"},
-    {"id": 8,  "url": "https://www.cbr.ru/press/keypr/"},
-    {"id": 9,  "url": "https://www.vedomosti.ru/economics/news/2026/06/17/1206701-rosstat-podtverdil"},
-    {"id": 10, "url": "https://www.kommersant.ru/doc/8763086"},
-    {"id": 11, "url": "https://rosstat.gov.ru/storage/mediabank/75_27-05-2026.html"},
-    {"id": 12, "url": "https://minfin.gov.ru/ru/press-center/?id_4=40343-informatsionnoe_soobshchenie_o_rezultatakh_razmeshcheniya_sredstv_fonda_natsionalnogo_blagosostoyaniya"}
-  ],
-  "stats": {
-    "steps": 37,
-    "tool_calls": 37,
-    "time_seconds": 1800,
-    "cost_usd": 0.0,
-    "model": "claude-sonnet-4-6 (Claude Code / subscription)"
-  },
-  "history": [
-    {"run_id": 5, "timestamp": "2026-05-23T23:35:00.000000+05:00", "risk_level": "orange",  "total_score": 43},
-    {"run_id": 6, "timestamp": "2026-05-29T12:00:00.000000+05:00", "risk_level": "orange",  "total_score": 56},
-    {"run_id": 7, "timestamp": "2026-06-05T00:00:00.000000+05:00", "risk_level": "orange",  "total_score": 56},
-    {"run_id": 8, "timestamp": "2026-06-11T12:00:00.000000+05:00", "risk_level": "orange",  "total_score": 60},
-    {"run_id": 9, "timestamp": "2026-06-28T21:00:00.000000+05:00", "risk_level": "orange",  "total_score": 57}
-  ],
-  "criteria_registry": [
-    {"id": "force_majeure_state_event",                  "name": "Форс-мажорное государственное событие",                    "search_query": "военное положение ЧП Россия 2026",           "weight": 40, "speed": "fast"},
-    {"id": "sovereign_domestic_debt_event",              "name": "Событие по внутреннему долгу РФ (ОФЗ)",                    "search_query": "ОФЗ реструктуризация 2026",                  "weight": 24, "speed": "fast"},
-    {"id": "bank_holidays_national",                     "name": "Банковские каникулы / приостановка расчётов",              "search_query": "банковские каникулы расчёты ЦБ 2026",        "weight": 20, "speed": "fast"},
-    {"id": "cb_emergency_rate_hike",                     "name": "Внеплановое повышение ключевой ставки ЦБ",                 "search_query": "ЦБ внеплановое заседание ставка 2026",       "weight": 15, "speed": "fast"},
-    {"id": "moex_trading_halt",                          "name": "Приостановка торгов на Мосбирже",                          "search_query": "Мосбиржа остановка торгов 2026",             "weight": 15, "speed": "fast"},
-    {"id": "new_fx_controls_severe",                     "name": "Резкое ужесточение валютного контроля",                    "search_query": "валютные ограничения запрет 2026",           "weight": 9,  "speed": "fast"},
-    {"id": "systemic_bank_resolution",                   "name": "Санация системно значимого банка",                         "search_query": "санация временная администрация 2026",       "weight": 12, "speed": "fast"},
-    {"id": "deposit_outflow_mass",                       "name": "Массовый отток вкладов физлиц",                            "search_query": "вклады отток статистика ЦБ 2026",            "weight": 12, "speed": "fast"},
-    {"id": "bank_license_chain_or_large",                "name": "Отзыв лицензий: крупный банк или цепочка",                 "search_query": "ЦБ отзыв лицензии банк 2026",               "weight": 9,  "speed": "fast"},
-    {"id": "payment_infrastructure_systemic_disruption", "name": "Широкомасштабные перебои СБП/карт/клиринга",               "search_query": "СБП НСПК сбой ограничения 2026",            "weight": 9,  "speed": "fast"},
-    {"id": "cash_m0_surge",                              "name": "Беспрецедентный рост наличных (M0)",                       "search_query": "наличные M0 рост банкоматы 2026",            "weight": 6,  "speed": "fast"},
-    {"id": "cb_emergency_actions_fin_stability",         "name": "Экстренные действия ЦБ по финстабильности",                "search_query": "ЦБ внеплановое заседание финстабильность",   "weight": 10, "speed": "fast"},
-    {"id": "budget_deficit_much_worse",                  "name": "Резкое ухудшение дефицита бюджета",                        "search_query": "Минфин дефицит бюджета 2026",                "weight": 12, "speed": "medium"},
-    {"id": "budget_emergency_amendments",                "name": "Экстренные поправки в бюджет",                             "search_query": "экстренные поправки бюджет 2026",            "weight": 6,  "speed": "fast"},
-    {"id": "nwf_liquid_depletion",                       "name": "Устойчивое сокращение ликвидной части ФНБ",                "search_query": "ФНБ ликвидная часть Минфин 2026",            "weight": 9,  "speed": "slow"},
-    {"id": "corporate_default_wave",                     "name": "Волна корпоративных дефолтов",                             "search_query": "дефолт облигации реструктуризация 2026",     "weight": 8,  "speed": "medium"},
-    {"id": "wage_arrears",                               "name": "Рост задолженности по зарплате",                           "search_query": "задержка зарплаты регионы 2026",             "weight": 5,  "speed": "medium"},
-    {"id": "new_sanctions_trade_finance",                "name": "Новые санкции с ухудшением расчётов/экспорта",             "search_query": "санкции введены расчёты экспорт 2026",       "weight": 8,  "speed": "medium"},
-    {"id": "cbr_repo_volume_spike",                      "name": "Резкий рост РЕПО банков с ЦБ",                             "search_query": "РЕПО ЦБ ликвидность банки 2026",             "weight": 10, "speed": "fast"},
-    {"id": "cash_fx_premium_spike",                      "name": "Аномальный спред наличного курса USD/EUR",                 "search_query": "курс наличный спред банки ЦБ 2026",          "weight": 10, "speed": "fast"},
-    {"id": "banking_npl_systemic_rise",                  "name": "Системный рост NPL банковского сектора",                   "search_query": "NPL просрочка банки ЦБ обзор 2026",          "weight": 8,  "speed": "medium"},
-    {"id": "deposit_rate_spread_spike",                  "name": "Аномальный спред ставок по вкладам над ключевой",          "search_query": "ставки вклады спред ключевая 2026",          "weight": 7,  "speed": "fast"},
-    {"id": "ofz_yield_curve_inversion_spike",            "name": "Резкое углубление инверсии кривой ОФЗ",                   "search_query": "ОФЗ кривая доходности инверсия 2026",        "weight": 6,  "speed": "fast"},
-    {"id": "interbank_liquidity_stress",                 "name": "Стресс ликвидности межбанка (RUONIA)",                     "search_query": "RUONIA межбанк ставки 2026",                 "weight": 7,  "speed": "medium"},
-    {"id": "inflation_reacceleration",                   "name": "Ускорение инфляции / срыв дезинфляции",                   "search_query": "инфляция Росстат ускорение ЦБ 2026",         "weight": 7,  "speed": "medium"},
-    {"id": "ruble_depreciation_shock",                   "name": "Резкое ослабление рубля",                                  "search_query": "рубль ослаб курс спред 2026",                "weight": 9,  "speed": "fast"},
-    {"id": "ofz_market_stress",                          "name": "Стресс на рынке госдолга (ОФЗ-аукционы)",                 "search_query": "Минфин ОФЗ аукцион слабый спрос 2026",       "weight": 7,  "speed": "medium"},
-    {"id": "household_credit_stress",                    "name": "Рост просрочки населения / стресс кредитования",           "search_query": "просрочка кредиты NPL физлица 2026",         "weight": 5,  "speed": "medium"},
-    {"id": "mortgage_real_estate_stress",                "name": "Стресс ипотеки / недвижимости",                            "search_query": "ипотека выдачи падение застройщики 2026",    "weight": 5,  "speed": "medium"},
-    {"id": "labor_market_deterioration",                 "name": "Ухудшение рынка труда",                                    "search_query": "безработица сокращения рынок труда 2026",    "weight": 5,  "speed": "medium"},
-    {"id": "regional_finance_crisis",                    "name": "Финансовый стресс регионов",                               "search_query": "регионы секвестр кассовый разрыв долг 2026", "weight": 5,  "speed": "medium"},
-    {"id": "external_trade_deterioration",               "name": "Ухудшение внешнеторговых условий",                         "search_query": "экспорт расчёты трудности Россия 2026",      "weight": 5,  "speed": "medium"},
-    {"id": "oil_price_shock_urals",                      "name": "Негативный шок по нефти Urals",                            "search_query": "Urals цена дисконт экспорт 2026",            "weight": 8,  "speed": "medium"},
-    {"id": "personal_bankruptcy_surge",                  "name": "Резкий рост банкротств физлиц",                            "search_query": "банкротство физлиц Федресурс 2026",          "weight": 6,  "speed": "slow"},
-    {"id": "rzd_freight_collapse",                       "name": "Устойчивое падение грузооборота РЖД",                      "search_query": "РЖД грузооборот снижение 2026",              "weight": 6,  "speed": "slow"},
-    {"id": "retail_sales_real_decline",                  "name": "Устойчивое падение реальных розничных продаж",             "search_query": "Росстат розничная торговля снижение 2026",   "weight": 3,  "speed": "slow"},
-    {"id": "industrial_output_contraction",              "name": "Устойчивое сокращение промышленного производства",         "search_query": "ИПП промышленность снижение Росстат 2026",   "weight": 3,  "speed": "slow"}
   ]
 }
